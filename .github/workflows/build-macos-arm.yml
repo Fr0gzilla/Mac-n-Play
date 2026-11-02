@@ -38,14 +38,13 @@ jobs:
         run: |
           brew update
           brew uninstall pkgconfig || true
-          brew install --force qt@6 ffmpeg pkgconfig opus openssl@3 cmake ninja nasm protobuf@29 speexdsp libplacebo wget python-setuptools json-c miniupnpc libevent
-          # la machine GitHub a souvent une ancienne OpenSSL 3 préinstallée : « install » ne la met pas à jour.
-          # Avec la 3.5, les certificats des serveurs de Sony ne sont plus vérifiés (profil PSN, consoles PS5).
-          brew upgrade openssl@3 || true
-          # en-têtes et bibliothèque OpenSSL de la même version (la 3, comme la copie de curl du projet)
-          brew unlink openssl@4 || true
-          brew link --force --overwrite openssl@3
-          "$(brew --prefix)/opt/openssl@3/bin/openssl" version
+          brew install --force qt@6 ffmpeg pkgconfig opus openssl@3.6 cmake ninja nasm protobuf@29 speexdsp libplacebo wget python-setuptools json-c miniupnpc libevent
+          # « openssl@3 » désigne la 3.5 chez Homebrew : avec elle, les certificats des serveurs
+          # de Sony ne sont plus vérifiés (profil PSN, consoles PS5). On prend donc la 3.6,
+          # et les en-têtes et la bibliothèque viennent de la même version.
+          brew unlink openssl@4 openssl@3 || true
+          brew link --force --overwrite openssl@3.6
+          "$(brew --prefix)/opt/openssl@3.6/bin/openssl" version
 
       - name: Install sdl2-compat
         run: |
@@ -54,7 +53,7 @@ jobs:
 
       - name: Configure
         run: |
-          cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCHIAKI_ENABLE_CLI=OFF -DCHIAKI_ENABLE_STEAMDECK_NATIVE=OFF -DMACNPLAY_VERSION="$VERSION" -DOPENSSL_ROOT_DIR="$(brew --prefix)/opt/openssl@3" -DCMAKE_PREFIX_PATH="$(brew --prefix)/opt/openssl@3;$(brew --prefix)/opt/qt@6;$(brew --prefix)/opt/protobuf@29"
+          cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCHIAKI_ENABLE_CLI=OFF -DCHIAKI_ENABLE_STEAMDECK_NATIVE=OFF -DMACNPLAY_VERSION="$VERSION" -DOPENSSL_ROOT_DIR="$(brew --prefix)/opt/openssl@3.6" -DCMAKE_PREFIX_PATH="$(brew --prefix)/opt/openssl@3.6;$(brew --prefix)/opt/qt@6;$(brew --prefix)/opt/protobuf@29"
 
       - name: Build
         run: |
