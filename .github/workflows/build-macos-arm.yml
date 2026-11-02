@@ -39,9 +39,13 @@ jobs:
           brew update
           brew uninstall pkgconfig || true
           brew install --force qt@6 ffmpeg pkgconfig opus openssl@3 cmake ninja nasm protobuf@29 speexdsp libplacebo wget python-setuptools json-c miniupnpc libevent
+          # la machine GitHub a souvent une ancienne OpenSSL 3 préinstallée : « install » ne la met pas à jour.
+          # Avec la 3.5, les certificats des serveurs de Sony ne sont plus vérifiés (profil PSN, consoles PS5).
+          brew upgrade openssl@3 || true
           # en-têtes et bibliothèque OpenSSL de la même version (la 3, comme la copie de curl du projet)
           brew unlink openssl@4 || true
           brew link --force --overwrite openssl@3
+          "$(brew --prefix)/opt/openssl@3/bin/openssl" version
 
       - name: Install sdl2-compat
         run: |
@@ -97,6 +101,13 @@ jobs:
             if [[ -n "$v" && "${v%%.*}" -gt 15 ]]; then echo "trop récent ($v) : $f"; bad=1; fi
           done < <(find "Mac'n'Play.app" -type f \( -name '*.dylib' -o -perm +111 \))
           exit $bad
+
+      - name: Check OpenSSL version
+        run: |
+          # la vérification des certificats de Sony échoue avec OpenSSL 3.5 : il faut la 3.6 ou plus récente
+          v=$(strings "Mac'n'Play.app/Contents/Frameworks/libcrypto.3.dylib" | grep -m1 -oE 'OpenSSL 3\.[0-9]+' | cut -d. -f2)
+          echo "OpenSSL 3.$v embarquée"
+          [[ -n "$v" && "$v" -ge 6 ]]
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
