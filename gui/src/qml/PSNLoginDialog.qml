@@ -20,7 +20,7 @@ DialogView {
     buttonEnabled: !submitting && url.text.trim()
     onAccepted: {
         submitting = true;
-        Chiaki.handlePsnLoginRedirect(url.text.trim());
+        Chiaki.psn.handleLoginRedirect(url.text.trim());
     }
     StackView.onActivated: {
         if(login)
@@ -141,7 +141,7 @@ DialogView {
                             webView.visible = false;
                             loginForm.visible = true;
                             dialog.buttonVisible = true;
-                            psnurl = Chiaki.openPsnLink();
+                            psnurl = Chiaki.psn.openLoginPage();
                             if(psnurl)
                             {
                                 openurl.selectAll();
@@ -157,7 +157,7 @@ DialogView {
                 interval: 0
                 running: false
                 onTriggered: {
-                    Chiaki.clearCookies(webView.web.profile);
+                    Chiaki.psn.clearCookies(webView.web.profile);
                     webView.web.profile.clearHttpCache();
                 }
             }
@@ -214,7 +214,7 @@ DialogView {
                         nativeErrorLabel.text = "";
                         nativeErrorLabel.visible = false;
                         webView.visible = true;
-                        webView.web.url = Chiaki.psnLoginUrl();
+                        webView.web.url = Chiaki.psn.loginUrl();
                     }
                     Layout.preferredWidth: 200
                     Layout.fillHeight: true
@@ -255,8 +255,8 @@ DialogView {
 
                             onContextMenuRequested: (request) => request.accepted = true;
                             onNavigationRequested: (request) => {
-                                if (Chiaki.checkPsnRedirectURL(request.url)) {
-                                    Chiaki.handlePsnLoginRedirect(request.url)
+                                if (Chiaki.psn.isRedirectUrl(request.url)) {
+                                    Chiaki.psn.handleLoginRedirect(request.url)
                                     request.reject();
                                 }
                                 else
@@ -264,8 +264,8 @@ DialogView {
                             }
                             onCertificateError: console.error(error.description);
                         }", webView, "webView");
-                        Chiaki.setWebEngineHints(web.profile);
-                        webView.web.url = Chiaki.psnLoginUrl();
+                        Chiaki.psn.setWebEngineHints(web.profile);
+                        webView.web.url = Chiaki.psn.loginUrl();
                         web.anchors.fill = webView;
                     } catch (error) {
                         console.error('Create webengine view failed with error:' + error);
@@ -426,15 +426,15 @@ DialogView {
         }
 
         Connections {
-            target: Chiaki
+            target: Chiaki.psn
 
-            function onPsnLoginAccountIdDone(accountId) {
+            function onLoginSucceeded(accountId) {
                 dialog.callback(accountId);
                 submitting = false;
                 dialog.close();
             }
 
-            function onPsnLoginAccountIdError(error) {
+            function onLoginFailed(error) {
                 if(nativeLoginForm.visible)
                 {
                     webView.visible = false;

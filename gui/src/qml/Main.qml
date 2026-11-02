@@ -46,16 +46,12 @@ Item {
     }
 
     // Mac'n'Play s'associe à 2 consoles au plus
-    readonly property int maxConsoles: 2
-    function consoleLimitReached() {
-        return Chiaki.settings.registeredHosts.length >= maxConsoles;
-    }
     function showConsoleLimit() {
         showInfoDialog(qsTr("Two consoles maximum"), qsTr("Mac'n'Play can be paired with 2 consoles at most. Delete one in Settings › Consoles to add another."));
     }
 
     function autoRegister(auto, host, ps5) {
-        if (consoleLimitReached())
+        if (Chiaki.consoles.limitReached)
             return showConsoleLimit();
         if(auto)
             Chiaki.autoRegister()
@@ -177,7 +173,7 @@ Item {
     }
 
     function showManualHostDialog() {
-        if (consoleLimitReached())
+        if (Chiaki.consoles.limitReached)
             return showConsoleLimit();
         stack.push(manualHostDialogComponent);
     }
@@ -214,7 +210,7 @@ Item {
 
 
     function showRegistDialog(host, ps5) {
-        if (consoleLimitReached())
+        if (Chiaki.consoles.limitReached)
             return showConsoleLimit();
         stack.push(registDialogComponent, {host: host, ps5: ps5});
     }
@@ -561,6 +557,14 @@ Item {
     }
 
     Connections {
+        target: Chiaki.psn
+
+        function onCredentialsExpired() {
+            root.showPSNTokenDialog(true);
+        }
+    }
+
+    Connections {
         target: Chiaki
 
         function onSessionChanged() {
@@ -572,13 +576,6 @@ Item {
             root.showPsnView();
         }
 
-        function onPsnCredsExpired() {
-            Chiaki.settings.psnRefreshToken = ""
-            Chiaki.settings.psnAuthToken = ""
-            Chiaki.settings.psnAuthTokenExpiry = ""
-            Chiaki.settings.psnAccountId = ""
-            root.showPSNTokenDialog(true);
-        }
 
         function onError(title, text) {
             errorTitleLabel.text = title;

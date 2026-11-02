@@ -23,7 +23,7 @@ DialogView {
     buttonVisible: false
     onAccepted: {
         logDialog.open()
-        Chiaki.initPsnAuth(url.text.trim(), function(msg, ok, done) {
+        Chiaki.psn.loginWithRedirect(url.text.trim(), function(msg, ok, done) {
             if(ok)
                 Chiaki.settings.remotePlayAsk = false;
             if (!done)
@@ -145,7 +145,7 @@ DialogView {
                             webView.visible = false;
                             linkgrid.visible = true;
                             dialog.buttonVisible = true;
-                            psnurl = Chiaki.openPsnLink();
+                            psnurl = Chiaki.psn.openLoginPage();
                             if(psnurl)
                             {
                                 openurl.selectAll();
@@ -161,7 +161,7 @@ DialogView {
                 interval: 0
                 running: false
                 onTriggered: {
-                    Chiaki.clearCookies(webView.web.profile);
+                    Chiaki.psn.clearCookies(webView.web.profile);
                     webView.web.profile.clearHttpCache();
                 }
             }
@@ -218,7 +218,7 @@ DialogView {
                         nativeErrorLabel.text = "";
                         nativeErrorLabel.visible = false;
                         webView.visible = true;
-                        webView.web.url = Chiaki.psnLoginUrl();
+                        webView.web.url = Chiaki.psn.loginUrl();
                     }
                     Layout.preferredWidth: 200
                     Layout.fillHeight: true
@@ -262,9 +262,9 @@ DialogView {
 
                             onContextMenuRequested: (request) => request.accepted = true;
                             onNavigationRequested: (request) => {
-                                if (Chiaki.checkPsnRedirectURL(request.url)) {
+                                if (Chiaki.psn.isRedirectUrl(request.url)) {
                                     logDialog.open()
-                                    Chiaki.initPsnAuth(request.url, function(msg, ok, done) {
+                                    Chiaki.psn.loginWithRedirect(request.url, function(msg, ok, done) {
                                         if (!done)
                                             logArea.text += msg + '\n';
                                         else
@@ -280,8 +280,8 @@ DialogView {
                             }
                             onCertificateError: console.error(error.description);
                         }", webView, "webView");
-                        Chiaki.setWebEngineHints(web.profile);
-                        web.url = Chiaki.psnLoginUrl();
+                        Chiaki.psn.setWebEngineHints(web.profile);
+                        web.url = Chiaki.psn.loginUrl();
                         web.anchors.fill = webView;
                     } catch (error) {
                         console.error('Create webengine view failed with error:' + error);

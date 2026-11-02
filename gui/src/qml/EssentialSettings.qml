@@ -20,8 +20,8 @@ Flickable {
         if (selectedConsole)
             return selectedConsole;
         let known = null;
-        for (let i = 0; i < Chiaki.hosts.length; i++) {
-            let host = Chiaki.hosts[i];
+        for (let i = 0; i < Chiaki.consoles.list.length; i++) {
+            let host = Chiaki.consoles.list[i];
             if (host.discovered && host.state === "ready")
                 return host;
             if (!known && (host.discovered || host.registered))

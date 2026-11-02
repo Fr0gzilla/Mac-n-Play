@@ -23,8 +23,8 @@ Pane {
     // nombre de consoles affichées, pour l'écran vide
     readonly property int shownHosts: {
         let n = 0;
-        for (let i = 0; i < Chiaki.hosts.length; i++)
-            if (Chiaki.hosts[i].display)
+        for (let i = 0; i < Chiaki.consoles.list.length; i++)
+            if (Chiaki.consoles.list[i].display)
                 n++;
         return n;
     }
@@ -243,13 +243,13 @@ Pane {
                     step = 1;
                     psnRefreshMin.restart();
                     psnRefreshMax.restart();
-                    Chiaki.refreshPsnToken();
+                    Chiaki.psn.refresh();
                 }
                 visible: Chiaki.settings.psnAuthToken
                 property bool answered: false
                 Connections {
-                    target: Chiaki
-                    function onHostsChanged() {
+                    target: Chiaki.consoles
+                    function onListChanged() {
                         if (psnRefresh.step !== 1)
                             return;
                         psnRefresh.answered = true;
@@ -372,7 +372,7 @@ Pane {
         }
         clip: true
         spacing: 4
-        model: Chiaki.hosts
+        model: Chiaki.consoles.list
         onCountChanged: {
             if(!hostsView.currentItem)
                 hostsView.incrementCurrentIndex();
@@ -469,17 +469,17 @@ Pane {
                 if (modelData.demo)
                     return root.showInfoDialog(qsTr("Demo console"), qsTr("This PS5 is only a demonstration, to preview the home screen with two consoles."));
                 if(!modelData.discovered && !modelData.duid)
-                    Chiaki.wakeUpHost(index);
+                    Chiaki.consoles.wakeUp(index);
             }
 
             function deleteHost() {
                 if (modelData.demo)
                     return root.showInfoDialog(qsTr("Demo console"), qsTr("This PS5 is only a demonstration, to preview the home screen with two consoles."));
                 if (modelData.manual)
-                    root.showConfirmDialog(qsTr("Delete Console"), qsTr("Are you sure you want to delete this console?"), () => {Chiaki.deleteHost(index)});
+                    root.showConfirmDialog(qsTr("Delete Console"), qsTr("Are you sure you want to delete this console?"), () => {Chiaki.consoles.deleteManualHost(index)});
                         
                 else if (modelData.discovered && !modelData.registered)
-                    root.showConfirmDialog(qsTr("Hide Console"), qsTr("Are you sure you want to hide this console?") + "\n\n" + qsTr("Note: You can unhide from the Consoles section of the Settings under Hidden Consoles"), () => Chiaki.hideHost(modelData.mac, modelData.name));
+                    root.showConfirmDialog(qsTr("Hide Console"), qsTr("Are you sure you want to hide this console?") + "\n\n" + qsTr("Note: You can unhide from the Consoles section of the Settings under Hidden Consoles"), () => Chiaki.consoles.hide(modelData.mac, modelData.name));
 
             }
 
@@ -532,7 +532,7 @@ Pane {
             // compte PSN : avatar, pseudo, PS Plus, niveau et trophées, entre les boutons et la console
             Rectangle {
                 id: accountPanel
-                readonly property var p: Chiaki.psnProfile
+                readonly property var p: Chiaki.psn.profile
                 visible: !!p.onlineId && !Chiaki.settings.streamerMode && delegate.width > 1350
                 anchors {
                     horizontalCenter: parent.horizontalCenter
@@ -914,8 +914,8 @@ Pane {
         flat: true
         focusPolicy: Qt.NoFocus
         checkable: true
-        checked: Chiaki.discoveryEnabled
-        onToggled: Chiaki.discoveryEnabled = !Chiaki.discoveryEnabled
+        checked: Chiaki.consoles.discoveryEnabled
+        onToggled: Chiaki.consoles.discoveryEnabled = !Chiaki.consoles.discoveryEnabled
         leftPadding: 42
         rightPadding: 22
         topPadding: 10

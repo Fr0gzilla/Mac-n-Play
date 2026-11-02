@@ -11,12 +11,12 @@ import "controls" as C
 DialogView {
     id: dialog
     property bool finalClosing: false
-    title: Chiaki.currentControllerType
+    title: Chiaki.controllerMapping.controllerType
     buttonText: qsTr("Update Controller Mapping")
-    buttonEnabled: Chiaki.controllerMappingAltered
+    buttonEnabled: Chiaki.controllerMapping.altered
     onAccepted: {
-        Chiaki.controllerMappingApply();
-        Chiaki.controllerMappingQuit();
+        Chiaki.controllerMapping.apply();
+        Chiaki.controllerMapping.quit();
     }
     // flèches sans rien de sélectionné : on reprend sur le premier bouton
     Keys.onPressed: (event) => {
@@ -26,10 +26,10 @@ DialogView {
         }
     }
     Component.onDestruction: {
-        if(Chiaki.controllerMappingInProgress)
+        if(Chiaki.controllerMapping.inProgress)
         {
             finalClosing = true;
-            Chiaki.controllerMappingQuit();
+            Chiaki.controllerMapping.quit();
         }
     }
 
@@ -38,7 +38,7 @@ DialogView {
         id: mappingPage
         property C.PsButtonInfo psButtons: C.PsButtonInfo { }
         // manette PlayStation : on connaît le vrai nom (et le symbole) de chacun de ses boutons
-        readonly property bool playStation: /PS[345]|DualSense|DualShock/i.test(Chiaki.currentControllerType)
+        readonly property bool playStation: /PS[345]|DualSense|DualShock/i.test(Chiaki.controllerMapping.controllerType)
         // actions PlayStation rangées par familles, avec le bouton de la manette qui fait chacune
         readonly property var groups: [
             { title: qsTr("FACE BUTTONS"), values: [1, 2, 4, 8] },
@@ -50,7 +50,7 @@ DialogView {
         ]
         readonly property var stickAxes: [1 << 26, 1 << 27, 1 << 28, 1 << 29]
         function groupEntries(group) {
-            const mapping = Chiaki.currentControllerMapping;
+            const mapping = Chiaki.controllerMapping.mapping;
             let out = [];
             for (const v of group.values)
                 for (let i = 0; i < mapping.length; i++)
@@ -65,14 +65,14 @@ DialogView {
                         out.push(mapping[i]);
             }
             // les axes des sticks seulement si on autorise leur association
-            if (!Chiaki.enableAnalogStickMapping)
+            if (!Chiaki.controllerMapping.analogStickMapping)
                 out = out.filter(e => stickAxes.indexOf(e.buttonValue) < 0);
             return out;
         }
         // tous les boutons physiques de la manette et ce que fait chacun ; relu à chaque changement
         readonly property var physicalList: {
-            Chiaki.currentControllerMapping;
-            return Chiaki.controllerMappingPhysicalButtons();
+            Chiaki.controllerMapping.mapping;
+            return Chiaki.controllerMapping.physicalButtons();
         }
         // bouton d'origine de chaque action sur une manette PlayStation (pour signaler ce qui a changé)
         readonly property var psDefault: ({
@@ -245,8 +245,8 @@ DialogView {
                     Layout.alignment: Qt.AlignHCenter
                     Layout.topMargin: 4
                     text: qsTr("Allow mapping analog sticks and L2/R2")
-                    checked: Chiaki.enableAnalogStickMapping
-                    onToggled: Chiaki.enableAnalogStickMapping = checked
+                    checked: Chiaki.controllerMapping.analogStickMapping
+                    onToggled: Chiaki.controllerMapping.analogStickMapping = checked
                 }
 
                 Repeater {
@@ -430,7 +430,7 @@ DialogView {
                 close();
                 mappingPage.refocusLater(a);
                 if (physical !== current)
-                    Chiaki.assignPhysicalButton(physical, a);
+                    Chiaki.controllerMapping.assignPhysicalButton(physical, a);
             }
             onOpened: {
                 let items = [];
@@ -558,11 +558,11 @@ DialogView {
         }
 
         Connections {
-            target: Chiaki
+            target: Chiaki.controllerMapping
 
-            function onControllerMappingInProgressChanged()
+            function onInProgressChanged()
             {
-                if(!Chiaki.controllerMappingInProgress && !finalClosing)
+                if(!Chiaki.controllerMapping.inProgress && !finalClosing)
                     dialog.close();
             }
         }

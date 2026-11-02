@@ -8,7 +8,7 @@ import org.streetpea.chiaking
 import "controls" as C
 
 // Ajouter une console : un assistant en 3 étapes (quelle console, compte PSN, code affiché par la console),
-// avec à chaque fois ce qu'il faut faire. L'enregistrement lui-même ne change pas (Chiaki.registerHost).
+// avec à chaque fois ce qu'il faut faire. L'enregistrement lui-même ne change pas (Chiaki.consoles.registerConsole).
 DialogView {
     id: regist
     property bool ps5: true
@@ -27,7 +27,7 @@ DialogView {
     buttonEnabled: hostOk && accountOk && pinOk
 
     // consoles vues sur le réseau et pas encore associées
-    readonly property var foundConsoles: Array.from(Chiaki.hosts).filter(h => h.discovered && !h.registered && !h.demo && !!h.address)
+    readonly property var foundConsoles: Array.from(Chiaki.consoles.list).filter(h => h.discovered && !h.registered && !h.demo && !!h.address)
 
     StackView.onActivated: {
         if (Chiaki.settings.psnAccountId)
@@ -51,7 +51,7 @@ DialogView {
 
     onAccepted: {
         const psnId = oldPs4 ? onlineId.text.trim() : accountId.text.trim();
-        const ok = Chiaki.registerHost(host.trim(), psnId, pin.text.trim(), cpin.text.trim(), host.trim() === "255.255.255.255", target, function(msg, ok, done) {
+        const ok = Chiaki.consoles.registerConsole(host.trim(), psnId, pin.text.trim(), cpin.text.trim(), host.trim() === "255.255.255.255", target, function(msg, ok, done) {
             if (!done)
                 logArea.text += msg + "\n";
             else {
@@ -325,7 +325,7 @@ DialogView {
                             Label { text: "✓"; font.pixelSize: 24; color: "#4ade80" }
                             Label {
                                 Layout.fillWidth: true
-                                text: Chiaki.psnProfile.onlineId ? qsTr("Ready: connected as %1").arg(Chiaki.psnProfile.onlineId) : qsTr("Ready: your PSN account is connected")
+                                text: Chiaki.psn.profile.onlineId ? qsTr("Ready: connected as %1").arg(Chiaki.psn.profile.onlineId) : qsTr("Ready: your PSN account is connected")
                                 font.pixelSize: 17
                                 wrapMode: Text.WordWrap
                             }

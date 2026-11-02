@@ -42,7 +42,7 @@ DialogView {
     // un sélecteur en haut choisit celle dont on règle la qualité, la fluidité, etc.
     readonly property var consoleList: {
         let list = Chiaki.settings.registeredHosts.map(h => ({ mac: h.mac, name: h.name, ps5: h.ps5 }));
-        for (const h of Chiaki.hosts)
+        for (const h of Chiaki.consoles.list)
             if (h.demo && !list.some(c => c.mac === h.mac))
                 list.push({ mac: h.mac, name: h.name, ps5: h.ps5 });
         return list;
@@ -2603,9 +2603,9 @@ DialogView {
 
                         Label {
                             Layout.alignment: Qt.AlignHCenter
-                            text: qsTr("%1 / %2 consoles · 2 at most").arg(Chiaki.settings.registeredHosts.length).arg(root.maxConsoles)
+                            text: qsTr("%1 / %2 consoles · 2 at most").arg(Chiaki.consoles.registeredCount).arg(Chiaki.consoles.maxConsoles)
                             font.pixelSize: 14
-                            color: root.consoleLimitReached() ? "#fbbf24" : Qt.rgba(1, 1, 1, 0.5)
+                            color: Chiaki.consoles.limitReached ? "#fbbf24" : Qt.rgba(1, 1, 1, 0.5)
                         }
 
                         Label {
@@ -2626,7 +2626,7 @@ DialogView {
                         }
 
                         Repeater {
-                            model: Chiaki.hiddenHosts
+                            model: Chiaki.consoles.hidden
                             Rectangle {
                                 Layout.fillWidth: true
                                 implicitHeight: 76
@@ -2657,14 +2657,14 @@ DialogView {
                                         property bool keysNav: true
                                         navHandler: consolesLayout.nav
                                         text: qsTr("Unhide")
-                                        onClicked: root.showConfirmDialog(qsTr("Unhide Console"), qsTr("Are you sure you want to unhide this console?"), () => Chiaki.unhideHost(modelData.mac))
+                                        onClicked: root.showConfirmDialog(qsTr("Unhide Console"), qsTr("Are you sure you want to unhide this console?"), () => Chiaki.consoles.unhide(modelData.mac))
                                     }
                                 }
                             }
                         }
 
                         Rectangle {
-                            visible: Chiaki.hiddenHosts.length === 0
+                            visible: Chiaki.consoles.hidden.length === 0
                             Layout.fillWidth: true
                             implicitHeight: 64
                             radius: 18
@@ -2789,10 +2789,10 @@ DialogView {
                             // ancre = point du bouton (repère de la manette), ly = hauteur de la légende
                             // affectation enregistrée de la manette (bouton physique -> action), relue quand elle peut changer
                             readonly property var remap: {
-                                Chiaki.controllerMappingInProgress;
+                                Chiaki.controllerMapping.inProgress;
                                 Chiaki.controllers;
                                 bar.currentIndex;
-                                return Chiaki.physicalButtonActions();
+                                return Chiaki.controllerMapping.physicalButtonActions();
                             }
                             // titre et rôle de chaque action PlayStation
                             function describe(action) {
@@ -3431,9 +3431,9 @@ DialogView {
                         glyph = flag ? (info.glyph || "") : "+";
                         open();
                     }
-                    onOpened: Chiaki.startNavCapture()
+                    onOpened: Chiaki.controllerMapping.startNavCapture()
                     onClosed: {
-                        Chiaki.stopNavCapture();
+                        Chiaki.controllerMapping.stopNavCapture();
                         const key = navKey, slot = navSlot;
                         Qt.callLater(() => {
                             let items = [];
@@ -3446,7 +3446,7 @@ DialogView {
                         });
                     }
                     Connections {
-                        target: Chiaki
+                        target: Chiaki.controllerMapping
                         function onNavButtonCaptured(button) {
                             if (!navPicker.opened)
                                 return;
@@ -4623,10 +4623,10 @@ DialogView {
                 onTriggered: {
                     if(controllerMappingDialog.resetMapping)
                     {
-                        if(!Chiaki.controllerMappingDefaultMapping)
+                        if(!Chiaki.controllerMapping.defaultMapping)
                         {
                             quitControllerMapping = false;
-                            Chiaki.controllerMappingReset();
+                            Chiaki.controllerMapping.reset();
                         }
                         controllerMappingDialog.close();
                     }
@@ -4761,7 +4761,7 @@ DialogView {
             y: Math.round((root.height - height) / 2)
             onOpened: {
                 controllerLabel.forceActiveFocus(Qt.TabFocusReason);
-                Chiaki.beginControllerMapping(resetMapping);
+                Chiaki.controllerMapping.begin(resetMapping);
             }
             onClosed: {
                 if(resetFocus)
@@ -4778,7 +4778,7 @@ DialogView {
                     focus = false;
                 }
                 if(quitControllerMapping)
-                    Chiaki.controllerMappingQuit();
+                    Chiaki.controllerMapping.quit();
                 else
                     quitControllerMapping = true;
             }
@@ -4834,15 +4834,15 @@ DialogView {
         }
 
         Connections {
-            target: Chiaki
+            target: Chiaki.controllerMapping
 
-            function onControllerMappingInProgressChanged()
+            function onInProgressChanged()
             {
-                if(Chiaki.controllerMappingInProgress)
+                if(Chiaki.controllerMapping.inProgress)
                     openTimer.start();
             }
 
-            function onControllerMappingSteamControllerSelected()
+            function onSteamControllerSelected()
             {
                 controllerMappingDialog.resetFocus = false;
                 quitControllerMapping = false;

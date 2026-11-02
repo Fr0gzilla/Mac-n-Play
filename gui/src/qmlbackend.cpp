@@ -1,4 +1,8 @@
 #include "qmlbackend.h"
+#include "psnaccount.h"
+#include "consoleregistry.h"
+#include "connectedcontrollers.h"
+#include "macnplaylog.h"
 #include <QSettings>
 #include "qmlsettings.h"
 #include "qmlmainwindow.h"
@@ -253,37 +257,6 @@ static void msg_handler(QtMsgType type, const QMessageLogContext &context, const
     chiaki_log(chiaki_log_ctx, chiaki_level, "%s", qPrintable(msg));
 }
 
-QmlRegist::QmlRegist(const ChiakiRegistInfo &regist_info, uint32_t log_mask, QObject *parent)
-    : QObject(parent)
-{
-    chiaki_log_init(&chiaki_log, log_mask, &QmlRegist::log_cb, this);
-    chiaki_regist_start(&chiaki_regist, &chiaki_log, &regist_info, &QmlRegist::regist_cb, this);
-}
-
-void QmlRegist::log_cb(ChiakiLogLevel level, const char *msg, void *user)
-{
-    chiaki_log_cb_print(level, msg, nullptr);
-    auto r = static_cast<QmlRegist*>(user);
-    QMetaObject::invokeMethod(r, std::bind(&QmlRegist::log, r, level, QString::fromUtf8(msg)), Qt::QueuedConnection);
-}
-
-void QmlRegist::regist_cb(ChiakiRegistEvent *event, void *user)
-{
-    auto r = static_cast<QmlRegist*>(user);
-    switch (event->type) {
-    case CHIAKI_REGIST_EVENT_TYPE_FINISHED_SUCCESS:
-        QMetaObject::invokeMethod(r, std::bind(&QmlRegist::success, r, *event->registered_host), Qt::QueuedConnection);
-        QMetaObject::invokeMethod(r, &QObject::deleteLater, Qt::QueuedConnection);
-        break;
-    case CHIAKI_REGIST_EVENT_TYPE_FINISHED_FAILED:
-        QMetaObject::invokeMethod(r, &QmlRegist::failed, Qt::QueuedConnection);
-        QMetaObject::invokeMethod(r, &QObject::deleteLater, Qt::QueuedConnection);
-        break;
-    default:
-        break;
-    }
-}
-
 QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     : QObject(window)
     , settings(settings)
@@ -296,6 +269,9 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     qmlRegisterSingletonInstance(uri, 1, 0, "Chiaki", this);
     qmlRegisterUncreatableType<QmlMainWindow>(uri, 1, 0, "ChiakiWindow", {});
     qmlRegisterUncreatableType<QmlSettings>(uri, 1, 0, "ChiakiSettings", {});
+    qmlRegisterUncreatableType<ControllerMappingController>(uri, 1, 0, "ControllerMapping", {});
+    qmlRegisterUncreatableType<PsnAccount>(uri, 1, 0, "PsnAccount", {});
+    qmlRegisterUncreatableType<ConsoleRegistry>(uri, 1, 0, "ConsoleRegistry", {});
     qmlRegisterUncreatableType<StreamSession>(uri, 1, 0, "ChiakiSession", {});
 
     QObject *frame_obj = new QObject();
@@ -309,7 +285,6 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     connect(&psn_connection_thread, &QThread::finished, worker, &QObject::deleteLater);
     connect(this, &QmlBackend::psnConnect, worker, &PsnConnectionWorker::ConnectPsnConnection);
     connect(worker, &PsnConnectionWorker::resultReady, this, &QmlBackend::checkPsnConnection);
-    connect(&psn_hosts_watcher, &QFutureWatcher<void>::finished, [this]{ this->updating_psn_hosts = false; });
     psn_connection_thread.start();
 
     setConnectState(PsnConnectState::NotStarted);
@@ -325,29 +300,23 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
             window,
             &QmlMainWindow::updateVulkanDeferredSwap,
             Qt::QueuedConnection);
-    connect(settings_qml, &QmlSettings::streamMenuEnabledChanged, this, &QmlBackend::updateStreamShortcut);
-    connect(settings_qml, &QmlSettings::streamMenuShortcut1Changed, this, &QmlBackend::updateStreamShortcut);
-    connect(settings_qml, &QmlSettings::streamMenuShortcut2Changed, this, &QmlBackend::updateStreamShortcut);
-    connect(settings_qml, &QmlSettings::streamMenuShortcut3Changed, this, &QmlBackend::updateStreamShortcut);
-    connect(settings_qml, &QmlSettings::streamMenuShortcut4Changed, this, &QmlBackend::updateStreamShortcut);
-    connect(settings, &Settings::RegisteredHostsUpdated, this, &QmlBackend::hostsChanged);
-    connect(settings, &Settings::HiddenHostsUpdated, this, &QmlBackend::hiddenHostsChanged);
-    connect(settings, &Settings::ManualHostsUpdated, this, &QmlBackend::hostsChanged);
+    connected_controllers = new ConnectedControllers(settings, window, this);
+    connect(connected_controllers, &ConnectedControllers::listChanged, this, &QmlBackend::controllersChanged);
+    for (auto changed : {&QmlSettings::streamMenuEnabledChanged, &QmlSettings::streamMenuShortcut1Changed, &QmlSettings::streamMenuShortcut2Changed,
+                         &QmlSettings::streamMenuShortcut3Changed, &QmlSettings::streamMenuShortcut4Changed})
+        connect(settings_qml, changed, connected_controllers, &ConnectedControllers::applyStreamMenuShortcut);
     connect(settings, &Settings::CurrentProfileChanged, this, &QmlBackend::profileChanged);
-    connect(&discovery_manager, &DiscoveryManager::HostsUpdated, this, &QmlBackend::updateDiscoveryHosts);
-    discovery_manager.SetSettings(settings);
-    setDiscoveryEnabled(true);
-    connect(ControllerManager::GetInstance(), &ControllerManager::AvailableControllersUpdated, this, &QmlBackend::updateControllers);
-    connect(settings_qml, &QmlSettings::allowJoystickBackgroundEventsChanged, this, &QmlBackend::setAllowJoystickBackgroundEvents);
-    connect(window, &QmlMainWindow::activeChanged, this, &QmlBackend::setIsAppActive);
-    connect(this, &QmlBackend::sessionChanged, this, &QmlBackend::setIsAppActive);
-    setAllowJoystickBackgroundEvents();
-    setIsAppActive();
-    ControllerManager::GetInstance()->SetIsAppActive(window->isActive());
-    updateControllers();
-    updateControllerMappings();
-    connect(settings, &Settings::ControllerMappingsUpdated, this, &QmlBackend::updateControllerMappings);
-    connect(this, &QmlBackend::controllersChanged, this, &QmlBackend::updateControllerMappings);
+    consoles = new ConsoleRegistry(settings, this);
+    connect(consoles, &ConsoleRegistry::discoveredHostsUpdated, this, &QmlBackend::updateDiscoveryHosts);
+    connect(consoles, &ConsoleRegistry::error, this, &QmlBackend::error);
+    connect(settings_qml, &QmlSettings::allowJoystickBackgroundEventsChanged, connected_controllers, &ConnectedControllers::applyBackgroundEvents);
+    connect(this, &QmlBackend::sessionChanged, connected_controllers, &ConnectedControllers::applyAppActive);
+    controller_mapping = new ControllerMappingController(settings, connected_controllers->byDeviceId(), this);
+    connected_controllers->setMappingController(controller_mapping);
+    connected_controllers->refresh();
+    connect(connected_controllers, &ConnectedControllers::listChanged, controller_mapping, &ControllerMappingController::applySavedMappings);
+    psn_account = new PsnAccount(settings, this);
+    connect(psn_account, &PsnAccount::tokensReady, consoles, &ConsoleRegistry::refreshPsnConsoles);
     auto_connect_mac = settings->GetAutoConnectHost().GetServerMAC();
     auto_connect_nickname = settings->GetAutoConnectHost().GetServerNickname();
     psn_auto_connect_timer = new QTimer(this);
@@ -360,16 +329,11 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     {
         connect(psn_auto_connect_timer, &QTimer::timeout, this, [this]
         {
-            int i = 0;
-            for (const auto &host : std::as_const(psn_hosts))
+            const int index = consoles->psnConsoleIndex(auto_connect_nickname);
+            if(index >= 0)
             {
-                if(host.GetName() == auto_connect_nickname)
-                {
-                    int index = discovery_manager.GetHosts().size() + this->settings->GetManualHosts().size() + i;
-                    connectToHost(index);
-                    return;
-                }
-                i++;
+                connectToHost(index);
+                return;
             }
             qCWarning(chiakiGui) << "Couldn't find PSN host with the requested nickname: " << auto_connect_nickname;
         });
@@ -400,7 +364,7 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
                 setConnectState(PsnConnectState::ConnectFailed);
             }
         });
-        connect(psnToken, &PSNToken::UnauthorizedError, this, &QmlBackend::psnCredsExpired);
+        connect(psnToken, &PSNToken::UnauthorizedError, psn_account, &PsnAccount::forgetCredentials);
         connect(psnToken, &PSNToken::PSNTokenSuccess, this, [this]() {
             qCWarning(chiakiGui) << "PSN Remote Connection Tokens Refreshed. Internet is back up";
             resume_session = false;
@@ -430,7 +394,7 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     connect(windows_wake_sleep, &WindowsWakeSleep::wokeUp, this, &QmlBackend::resumeFromSleep);
     connect(windows_wake_sleep, &WindowsWakeSleep::sleeping, this, &QmlBackend::goToSleep);
 #endif
-    refreshPsnToken();
+    psn_account->refresh();
 }
 
 bool QmlBackend::prepareFrameForPresentation(ChiakiFfmpegFrame &frame, bool use_opengl_renderer)
@@ -498,8 +462,6 @@ QmlBackend::~QmlBackend()
         session = nullptr;
     }
 #ifdef CHIAKI_HAVE_WEBENGINE
-    if(request_interceptor)
-        request_interceptor->deleteLater();
 #endif
     frame_thread->quit();
     frame_thread->wait();
@@ -582,7 +544,7 @@ void QmlBackend::resumeFromSleep()
 
 QList<QmlController*> QmlBackend::qmlControllers() const
 {
-    return controllers.values();
+    return connected_controllers->list();
 }
 
 void QmlBackend::profileChanged()
@@ -593,17 +555,14 @@ void QmlBackend::profileChanged()
         settings->deleteLater();
     settings_allocd = true;
     settings = settings_copy;
-    emit hostsChanged();
-    updateControllerMappings();
-    connect(settings, &Settings::RegisteredHostsUpdated, this, &QmlBackend::hostsChanged);
-    connect(settings, &Settings::HiddenHostsUpdated, this, &QmlBackend::hiddenHostsChanged);
-    connect(settings, &Settings::ManualHostsUpdated, this, &QmlBackend::hostsChanged);
+    controller_mapping->setSettings(settings);
+    connected_controllers->setSettings(settings);
+    consoles->setSettings(settings);
+    psn_account->setSettings(settings);
     connect(settings, &Settings::CurrentProfileChanged, this, &QmlBackend::profileChanged);
-    connect(settings, &Settings::ControllerMappingsUpdated, this, &QmlBackend::updateControllerMappings);
     settings_qml->setSettings(settings);
-    discovery_manager.SetSettings(settings);
     window->setSettings(settings);
-    setDiscoveryEnabled(true);
+    consoles->setDiscoveryEnabled(true);
 
     auto_connect_mac = settings->GetAutoConnectHost().GetServerMAC();
     auto_connect_nickname = settings->GetAutoConnectHost().GetServerNickname();
@@ -617,16 +576,11 @@ void QmlBackend::profileChanged()
     {
         connect(psn_auto_connect_timer, &QTimer::timeout, this, [this]
         {
-            int i = 0;
-            for (const auto &host : std::as_const(psn_hosts))
+            const int index = consoles->psnConsoleIndex(auto_connect_nickname);
+            if(index >= 0)
             {
-                if(host.GetName() == auto_connect_nickname)
-                {
-                    int index = discovery_manager.GetHosts().size() + this->settings->GetManualHosts().size() + i;
-                    connectToHost(index);
-                    return;
-                }
-                i++;
+                connectToHost(index);
+                return;
             }
             qCWarning(chiakiGui) << "Couldn't find PSN host with the requested nickname: " << auto_connect_nickname;
         });
@@ -657,7 +611,7 @@ void QmlBackend::profileChanged()
                 setConnectState(PsnConnectState::ConnectFailed);
             }
         });
-        connect(psnToken, &PSNToken::UnauthorizedError, this, &QmlBackend::psnCredsExpired);
+        connect(psnToken, &PSNToken::UnauthorizedError, psn_account, &PsnAccount::forgetCredentials);
         connect(psnToken, &PSNToken::PSNTokenSuccess, this, []() {
             qCWarning(chiakiGui) << "PSN Remote Connection Tokens Refreshed. Internet is back up";
         });
@@ -687,20 +641,7 @@ void QmlBackend::profileChanged()
     connect(windows_wake_sleep, &WindowsWakeSleep::wokeUp, this, &QmlBackend::resumeFromSleep);
     connect(windows_wake_sleep, &WindowsWakeSleep::sleeping, this, &QmlBackend::goToSleep);
 #endif
-    refreshPsnToken();
-    emit hostsChanged();
-    emit hiddenHostsChanged();
-}
-
-bool QmlBackend::discoveryEnabled() const
-{
-    return discovery_manager.GetActive();
-}
-
-void QmlBackend::setDiscoveryEnabled(bool enabled)
-{
-    discovery_manager.SetActive(enabled);
-    emit discoveryEnabledChanged();
+    psn_account->refresh();
 }
 
 QmlBackend::PsnConnectState QmlBackend::connectState() const
@@ -735,136 +676,6 @@ void QmlBackend::setConnectState(PsnConnectState connect_state)
     emit connectStateChanged();
 }
 
-QVariantList QmlBackend::hosts() const
-{
-    QVariantList out;
-    QList<QString> discovered_nicknames;
-    QList<ManualHost> discovered_manual_hosts;
-    size_t registered_discovered_ps4s = 0;
-    auto manual_hosts = settings->GetManualHosts();
-    for (const auto &host : discovery_manager.GetHosts()) {
-        QVariantMap m;
-        HostMAC host_mac = host.GetHostMAC();
-        bool registered = settings->GetRegisteredHostRegistered(host_mac);
-        bool hidden = settings->GetHiddenHostHidden(host_mac);
-        if(registered && hidden)
-        {
-            settings->RemoveHiddenHost(host_mac);
-            bool hidden = false;
-        }
-        // Update hidden host nickname if it's changed
-        if(hidden)
-        {
-            auto hidden_host = settings->GetHiddenHost(host_mac);
-            if(hidden_host.GetNickname() != host.host_name)
-            {
-                hidden_host.SetNickname(host.host_name);
-                settings->RemoveHiddenHost(host_mac);
-                settings->AddHiddenHost(hidden_host);
-            }
-        }
-        m["discovered"] = true;
-        bool manual = false;
-        for(int i = 0; i < manual_hosts.length(); i++)
-        {
-            const auto &manual_host = manual_hosts.at(i);
-            if(manual_host.GetRegistered() && manual_host.GetMAC() == host_mac && manual_host.GetHost() == host.host_addr)
-            {
-                manual = true;
-                discovered_manual_hosts.append(manual_host);
-            }
-        }
-        m["manual"] = manual;
-        m["name"] = host.host_name;
-        QString duid = "";
-        if(!registered)
-        {
-            if(psn_nickname_hosts.contains(host.host_name))
-                duid = psn_nickname_hosts.value(host.host_name).GetDuid();
-            else if(!host.ps5)
-                duid =  psn_nickname_hosts.value(QString("Main PS4 Console")).GetDuid();
-        }
-        m["duid"] = duid;
-        m["address"] = host.host_addr;
-        m["ps5"] = host.ps5;
-        m["mac"] = host_mac.ToString();
-        m["state"] = chiaki_discovery_host_state_string(host.state);
-        m["app"] = host.running_app_name;
-        m["titleId"] = host.running_app_titleid;
-        m["registered"] = registered;
-        m["display"] = hidden ? false : true;
-        discovered_nicknames.append(host.host_name);
-        out.append(m);
-        if(!host.ps5 && registered)
-            registered_discovered_ps4s++;
-    }
-    for (const auto &host : settings->GetManualHosts()) {
-        QVariantMap m;
-        m["discovered"] = false;
-        m["manual"] = true;
-        m["name"] = host.GetHost();
-        m["duid"] = "";
-        m["address"] = host.GetHost();
-        m["state"] = "unknown";
-        m["registered"] = false;
-        m["display"] = discovered_manual_hosts.contains(host) ? false : true;
-        if (host.GetRegistered() && settings->GetRegisteredHostRegistered(host.GetMAC())) {
-            auto registered = settings->GetRegisteredHost(host.GetMAC());
-            m["registered"] = true;
-            m["name"] = registered.GetServerNickname();
-            m["ps5"] = chiaki_target_is_ps5(registered.GetTarget());
-            m["mac"] = registered.GetServerMAC().ToString();
-        }
-        out.append(m);
-    }
-    if(registered_discovered_ps4s >= settings->GetPS4RegisteredHostsRegistered())
-        discovered_nicknames.append(QString("Main PS4 Console"));
-    for (const auto &host : psn_hosts) {
-        QVariantMap m;
-        // Only list PSN remote hosts that aren't discovered locally
-        bool discovered = false;
-        for (int i = 0; i < discovered_nicknames.size(); ++i)
-        {
-            if (discovered_nicknames.at(i) == host.GetName())
-                discovered = true;
-        }
-        for (int i = 0; i < waking_sleeping_nicknames.size(); ++i)
-        {
-            if (waking_sleeping_nicknames.at(i) == host.GetName())
-                discovered = true;
-        }
-        if(discovered)
-            continue;
-        m["discovered"] = false;
-        m["manual"] = false;
-        m["display"] = true;
-        m["name"] = host.GetName();
-        m["duid"] = host.GetDuid();
-        m["address"] = "";
-        m["registered"] = true;
-        m["ps5"] = host.IsPS5();
-        out.append(m);
-    }
-    // démonstration : MACNPLAY_DEMO_PS5=1 ajoute une fausse PS5 pour voir l'accueil avec deux consoles
-    if (qEnvironmentVariableIsSet("MACNPLAY_DEMO_PS5")) {
-        QVariantMap m;
-        m["demo"] = true;
-        m["discovered"] = true;
-        m["manual"] = false;
-        m["display"] = true;
-        m["name"] = "PS5-Salon";
-        m["duid"] = "";
-        m["address"] = "192.168.1.72";
-        m["ps5"] = true;
-        m["mac"] = "000000000000";
-        m["state"] = "standby";
-        m["app"] = "";
-        m["registered"] = true;
-        out.append(m);
-    }
-    return out;
-}
-
 bool QmlBackend::autoConnect() const
 {
     return auto_connect_mac.GetValue();
@@ -892,7 +703,7 @@ void QmlBackend::checkPsnConnection(const ChiakiErrorCode &err)
                 chiaki_log_mutex.unlock();
                 session->deleteLater();
                 session = nullptr;
-                setDiscoveryEnabled(true);
+                consoles->setDiscoveryEnabled(true);
             }
             break;
         case CHIAKI_ERR_HOST_UNREACH:
@@ -904,7 +715,7 @@ void QmlBackend::checkPsnConnection(const ChiakiErrorCode &err)
                 chiaki_log_mutex.unlock();
                 session->deleteLater();
                 session = nullptr;
-                setDiscoveryEnabled(true);
+                consoles->setDiscoveryEnabled(true);
             }
             break;
         default:
@@ -916,7 +727,7 @@ void QmlBackend::checkPsnConnection(const ChiakiErrorCode &err)
                 chiaki_log_mutex.unlock();
                 session->deleteLater();
                 session = nullptr;
-                setDiscoveryEnabled(true);
+                consoles->setDiscoveryEnabled(true);
             }
             break;
     }
@@ -1236,7 +1047,7 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         emit sessionChanged(session);
 
         sleep_inhibit->release();
-        setDiscoveryEnabled(true);
+        consoles->setDiscoveryEnabled(true);
         // relance demandée depuis le menu en jeu (autre qualité)
         if (restart_pending) {
             restart_pending = false;
@@ -1283,7 +1094,7 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
 
         if (session_for_connections->IsConnected())
         {
-            setDiscoveryEnabled(false);
+            consoles->setDiscoveryEnabled(false);
             // la liste des tailles d'image arrive juste après la connexion
             if (!pro_check_mac.isEmpty())
                 QTimer::singleShot(4000, this, [this, session_for_connections]() { checkPs4Pro(session_for_connections); });
@@ -1309,7 +1120,7 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
     }
     else
     {
-        setDiscoveryEnabled(false);
+        consoles->setDiscoveryEnabled(false);
         emit showPsnView();
         if(session_info.auto_regist)
             setConnectState(PsnConnectState::RegisteringConsole);
@@ -1345,160 +1156,9 @@ bool QmlBackend::closeRequested()
     return false;
 }
 
-void QmlBackend::deleteHost(int index)
-{
-    auto server = displayServerAt(index);
-    auto id = server.manual_host.GetID();
-    if (!server.valid || (id < 0))
-        return;
-    settings->RemoveManualHost(id);
-}
-
-void QmlBackend::wakeUpHost(int index, QString nickname)
-{
-    auto server = displayServerAt(index);
-    if (!server.valid)
-        return;
-    if (!server.registered)
-        return;
-    if (!nickname.isEmpty())
-    {
-        waking_sleeping_nicknames.append(nickname);
-        QTimer::singleShot(WAKEUP_PSN_IGNORE_SECONDS * 1000, [this, nickname]{
-            waking_sleeping_nicknames.removeOne(nickname);
-            emit hostsChanged();
-        });
-    }
-    const QString wake_host = server.GetHostAddr();
-    const QByteArray wake_regist_key = server.registered_host.GetRPRegistKey();
-    const bool wake_ps5 = server.IsPS5();
-    QTimer::singleShot(0, this, [this, wake_host, wake_regist_key, wake_ps5]() {
-        if(!sendWakeup(wake_host, wake_regist_key, wake_ps5))
-            qCWarning(chiakiGui) << "Couldn't wakeup server";
-    });
-}
-
-void QmlBackend::setConsolePin(int index, QString console_pin)
-{
-    auto server = displayServerAt(index);
-    if (!server.valid)
-        return;
-    server.registered_host.SetConsolePin(server.registered_host, std::move(console_pin));
-    settings->AddRegisteredHost(server.registered_host);
-}
-
-void QmlBackend::addManualHost(int index, const QString &address)
-{
-    HostMAC hmac;
-    QList<RegisteredHost> registered_hosts = settings->GetRegisteredHosts();
-    bool registered = (index >= 0 && (index < registered_hosts.length()));
-    if (registered)
-        hmac = registered_hosts.at(index).GetServerMAC();
-    ManualHost host(-1, address, registered, hmac);
-    settings->SetManualHost(host);
-}
-
-void QmlBackend::hideHost(const QString &mac_string, const QString &host_nickname)
-{
-    QByteArray mac_array = QByteArray::fromHex(mac_string.toUtf8());
-    if (mac_array.size() != 6)
-    {
-        qCCritical(chiakiGui) << "Invalid host mac:" << mac_string.toUtf8();
-        qCCritical(chiakiGui) << "Aborting hidden host creation because mac string couldn't be converted to a valid host mac!";
-        qCCritical(chiakiGui) << "Received an array of unexpected size. Expected: 6 bytes, Received:" << mac_array.size() << "bytes";
-        return;
-    }
-    HostMAC mac((const uint8_t *)mac_array.constData());
-    HiddenHost hidden_host(mac, host_nickname);
-    settings->AddHiddenHost(hidden_host);
-    emit hostsChanged();
-}
-
-void QmlBackend::unhideHost(const QString &mac_string)
-{
-    QByteArray mac_array = QByteArray::fromHex(mac_string.toUtf8());
-    const char *mac_ptr = mac_array.constData();
-    if (strlen(mac_ptr) != 6)
-    {
-        qCCritical(chiakiGui) << " Aborting hidden host creation because mac string couldn't be converted to a valid host mac!";
-        return;
-    }
-    HostMAC mac((const uint8_t *)mac_ptr);
-    settings->RemoveHiddenHost(mac);
-    emit hostsChanged();
-}
-
-QVariantList QmlBackend::hiddenHosts() const
-{
-    QVariantList out;
-    for (const auto &host : settings->GetHiddenHosts()) {
-        QVariantMap m;
-        m["name"] = host.GetNickname();
-        m["mac"] = host.GetMAC().ToString();
-        out.append(m);
-    }
-    return out;
-}
-
-
-bool QmlBackend::registerHost(const QString &host, const QString &psn_id, const QString &pin, const QString &cpin, bool broadcast, int target, const QJSValue &callback)
-{
-    ChiakiRegistInfo info = {};
-    QByteArray hostb = host.toUtf8();
-    info.host = hostb.constData();
-    info.target = static_cast<ChiakiTarget>(target);
-    info.broadcast = broadcast;
-    info.pin = (uint32_t)pin.toULong();
-    info.console_pin = (uint32_t)cpin.toULong();
-    info.holepunch_info = nullptr;
-    info.rudp = nullptr;
-    QByteArray psn_idb;
-    if (target == CHIAKI_TARGET_PS4_8) {
-        psn_idb = psn_id.toUtf8();
-        info.psn_online_id = psn_idb.constData();
-    } else {
-        QByteArray account_id = QByteArray::fromBase64(psn_id.toUtf8());
-        if (account_id.size() != CHIAKI_PSN_ACCOUNT_ID_SIZE) {
-            emit error(tr("Invalid Account-ID"), tr("The PSN Account-ID must be exactly %1 bytes encoded as base64.").arg(CHIAKI_PSN_ACCOUNT_ID_SIZE));
-            return false;
-        }
-        info.psn_online_id = nullptr;
-        memcpy(info.psn_account_id, account_id.constData(), CHIAKI_PSN_ACCOUNT_ID_SIZE);
-    }
-    auto regist = new QmlRegist(info, settings->GetLogLevelMask(), this);
-    connect(regist, &QmlRegist::log, this, [callback](ChiakiLogLevel level, QString msg) {
-        QJSValue cb = callback;
-        if (cb.isCallable())
-            cb.call({QString("[%1] %2").arg(chiaki_log_level_char(level)).arg(msg), true, false});
-    });
-    connect(regist, &QmlRegist::failed, this, [this, callback]() {
-        QJSValue cb = callback;
-        if (cb.isCallable())
-            cb.call({QString(), false, true});
-
-        regist_dialog_server = {};
-    });
-    connect(regist, &QmlRegist::success, this, [this, host, callback](const RegisteredHost &rhost) {
-        QJSValue cb = callback;
-        if (cb.isCallable())
-            cb.call({QString(), true, true});
-
-        settings->AddRegisteredHost(rhost);
-        if(regist_dialog_server.discovered == false)
-        {
-            ManualHost manual_host = regist_dialog_server.manual_host;
-            if(manual_host.GetHost().isEmpty())
-                manual_host.SetHost(host);
-            manual_host.Register(rhost);
-            settings->SetManualHost(manual_host);
-        }
-    });
-    return true;
-}
-
 void QmlBackend::autoRegister()
 {
-    const auto &server = regist_dialog_server;
+    const auto &server = consoles->pendingRegistration();
     resume_session = false;
     StreamSessionConnectInfo info(
             settings,
@@ -1527,7 +1187,7 @@ void QmlBackend::autoRegister()
         connect(psnToken, &PSNToken::PSNTokenError, this, [this](const QString &error) {
             qCWarning(chiakiGui) << "Could not refresh token. Automatic PSN Connection Unavailable!" << error;
         });
-        connect(psnToken, &PSNToken::UnauthorizedError, this, &QmlBackend::psnCredsExpired);
+        connect(psnToken, &PSNToken::UnauthorizedError, psn_account, &PsnAccount::forgetCredentials);
         connect(psnToken, &PSNToken::PSNTokenSuccess, this, []() {
             qCWarning(chiakiGui) << "PSN Remote Connection Tokens Refreshed.";
         });
@@ -1545,67 +1205,26 @@ void QmlBackend::autoRegister()
 void QmlBackend::finishAutoRegister(const ChiakiRegisteredHost &host)
 {
     QString nickname(host.server_nickname);
-    if(!regist_dialog_server.discovery_host.ps5 && regist_dialog_server.discovery_host.host_name != nickname)
+    if(!consoles->pendingRegistration().discovery_host.ps5 && consoles->pendingRegistration().discovery_host.host_name != nickname)
     {
-        emit error(tr("PS4 Console Not Main"), tr("Can't proceed...%1 is not your main PS4 console in PSN").arg(regist_dialog_server.discovery_host.host_name));
+        emit error(tr("PS4 Console Not Main"), tr("Can't proceed...%1 is not your main PS4 console in PSN").arg(consoles->pendingRegistration().discovery_host.host_name));
         return;
     }
     settings->AddRegisteredHost(host);
     setConnectState(PsnConnectState::RegistrationFinished);
-    updatePsnHosts();
+    consoles->refreshPsnConsoles();
 }
-
-#ifdef CHIAKI_HAVE_WEBENGINE
-void QmlBackend::clearCookies(QQuickWebEngineProfile *profile)
-{
-    auto cookieStore = profile->cookieStore();
-    cookieStore->deleteAllCookies();
-}
-
-void QmlBackend::setWebEngineHints(QQuickWebEngineProfile *profile)
-{
-    QDate starting_release_date(2025, 02, 18);
-    QDate today = QDate::currentDate();
-    auto daysSinceStart = starting_release_date.daysTo(today);
-    qint64 versionsSinceStart = daysSinceStart / 28;
-    qint64 release = 133 + versionsSinceStart;
-    QString chrome_version = QString::number(release);
-    auto userAgent = profile->httpUserAgent();
-    userAgent = userAgent.replace(QRegularExpression(" \\bQtWebEngine[^ ]*\\b"), "");
-    userAgent = userAgent.replace(QRegularExpression("\\bChrome[^ ]*\\b"), QString("Chrome/%1.0.0.0").arg(chrome_version));
-#ifdef Q_OS_WINDOWS
-    userAgent = userAgent.replace("Windows NT 6.2", "Windows NT 10.0");
-    userAgent += QString(" Edg/%1.0.0.0").arg(chrome_version);
-#endif
-    profile->setHttpUserAgent(userAgent);
-#if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
-    auto hints = profile->clientHints();
-    hints->setFullVersion(QString("%1.0.0.0").arg(chrome_version));
-    QMap<QString, QVariant> fullVersionList;
-    fullVersionList.insert("Not A(Brand", "99.0.0.0");
-#ifdef Q_OS_WINDOWS
-    fullVersionList.insert("Microsoft Edge", QString("%1.0.0.0").arg(chrome_version));
-#else
-    fullVersionList.insert("Google Chrome", QString("%1.0.0.0").arg(chrome_version));
-#endif
-    fullVersionList.insert("Chromium", QString("%1.0.0.0").arg(chrome_version));
-    hints->setFullVersionList(fullVersionList);
-#endif
-    request_interceptor = new SecUaRequestInterceptor(chrome_version);
-    profile->setUrlRequestInterceptor(request_interceptor);
-}
-#endif
 
 void QmlBackend::connectToHost(int index, QString nickname)
 {
     window->setWindowAdjustable(false);
-    auto server = displayServerAt(index);
+    auto server = consoles->consoleAt(index);
     if (!server.valid)
         return;
 
     if (!server.registered) {
-        regist_dialog_server = server;
-        emit registDialogRequested(server.GetHostAddr(), server.IsPS5(), server.duid);
+        consoles->setPendingRegistration(server);
+        emit registDialogRequested(server.address(), server.isPS5(), server.duid);
         return;
     }
 
@@ -1615,10 +1234,10 @@ void QmlBackend::connectToHost(int index, QString nickname)
 
     if (server.discovered && server.discovery_host.state == CHIAKI_DISCOVERY_HOST_STATE_STANDBY)
     {
-        const QString wake_host = server.GetHostAddr();
+        const QString wake_host = server.address();
         const QByteArray wake_regist_key = server.registered_host.GetRPRegistKey();
-        const bool wake_ps5 = server.IsPS5();
-        if(!sendWakeup(wake_host, wake_regist_key, wake_ps5))
+        const bool wake_ps5 = server.isPS5();
+        if(!consoles->sendWakeup(wake_host, wake_regist_key, wake_ps5))
         {
             qCWarning(chiakiGui) << "Couldn't wakeup server";
             window->setWindowAdjustable(true);
@@ -1629,11 +1248,7 @@ void QmlBackend::connectToHost(int index, QString nickname)
             qCWarning(chiakiGui) << "No nickname given for registered connection, not connecting...";
             return;
         }
-        waking_sleeping_nicknames.append(nickname);
-        QTimer::singleShot(WAKEUP_PSN_IGNORE_SECONDS * 1000, [this, nickname]{
-            waking_sleeping_nicknames.removeOne(nickname);
-            emit hostsChanged();
-        });
+        consoles->markWaking(nickname);
         wakeup_nickname = nickname;
     }
 
@@ -1662,14 +1277,14 @@ void QmlBackend::connectToHost(int index, QString nickname)
     resume_session = false;
     // une PS4 à qui l'on demande du 1080p : on regardera ce qu'elle propose vraiment
     pro_check_mac.clear();
-    if(server.duid.isEmpty() && !server.IsPS5() && settings->GetResolutionLocalPS4() == CHIAKI_VIDEO_RESOLUTION_PRESET_1080p)
+    if(server.duid.isEmpty() && !server.isPS5() && settings->GetResolutionLocalPS4() == CHIAKI_VIDEO_RESOLUTION_PRESET_1080p)
     {
         pro_check_mac = server.registered_host.GetServerMAC().ToString();
         pro_check_requested_height = 1080;
     }
     if(server.duid.isEmpty())
     {
-        QString host = server.GetHostAddr();
+        QString host = server.address();
         StreamSessionConnectInfo info(
                 settings,
                 server.registered_host.GetTarget(),
@@ -1714,7 +1329,7 @@ void QmlBackend::connectToHost(int index, QString nickname)
             connect(psnToken, &PSNToken::PSNTokenError, this, [this](const QString &error) {
                 qCWarning(chiakiGui) << "Could not refresh token. Automatic PSN Connection Unavailable!" << error;
             });
-            connect(psnToken, &PSNToken::UnauthorizedError, this, &QmlBackend::psnCredsExpired);
+            connect(psnToken, &PSNToken::UnauthorizedError, psn_account, &PsnAccount::forgetCredentials);
             connect(psnToken, &PSNToken::PSNTokenSuccess, this, []() {
                 qCWarning(chiakiGui) << "PSN Remote Connection Tokens Refreshed.";
             });
@@ -1794,11 +1409,7 @@ void QmlBackend::stopSession(bool sleep)
 
     if (!session_info.nickname.isEmpty())
     {
-        waking_sleeping_nicknames.append(session_info.nickname);
-        QTimer::singleShot(WAKEUP_PSN_IGNORE_SECONDS * 1000, [this]{
-            waking_sleeping_nicknames.removeOne(session_info.nickname);
-            emit hostsChanged();
-        });
+        consoles->markWaking(session_info.nickname);
     }
 
     if (sleep)
@@ -1822,43 +1433,6 @@ void QmlBackend::enterPin(const QString &pin)
         session->SetLoginPIN(pin);
 }
 
-QUrl QmlBackend::psnLoginUrl() const
-{
-    size_t duid_size = CHIAKI_DUID_STR_SIZE;
-    char duid[duid_size];
-    chiaki_holepunch_generate_client_device_uid(duid, &duid_size);
-    return QUrl(PSNAuth::LOGIN_URL + "duid=" + QString(duid) + "&");
-}
-
-bool QmlBackend::handlePsnLoginRedirect(const QUrl &url)
-{
-    if (!url.toString().startsWith(QString::fromStdString(PSNAuth::REDIRECT_PAGE)))
-    {
-        emit psnLoginAccountIdError(QString("Redirect URL invalid does not start with:\n") + QString::fromStdString(PSNAuth::REDIRECT_PAGE));
-        return false;
-    }
-
-    const QString code = QUrlQuery(url).queryItemValue("code");
-    if (code.isEmpty()) {
-        qCWarning(chiakiGui) << "Invalid code from redirect url";
-        emit psnLoginAccountIdError("Redirect URL invalid");
-        return false;
-    }
-    PSNAccountID *psnId = new PSNAccountID(settings, this);
-    connect(psnId, &PSNAccountID::AccountIDResponse, this, [this, psnId](const QString &accountId) {
-        emit psnLoginAccountIdDone(accountId);
-    });
-    connect(psnId, &PSNAccountID::AccountIDResponse, this, &QmlBackend::updatePsnHosts);
-    connect(psnId, &PSNAccountID::AccountIDError, [this](const QString &error) {
-        qCWarning(chiakiGui) << "Could not retrieve psn token or account Id!" << error;
-        emit psnLoginAccountIdError(error);
-    });
-    connect(psnId, &PSNAccountID::Finished, psnId, &QObject::deleteLater);
-    psnId->GetPsnAccountId(code);
-    emit psnTokenChanged();
-    return true;
-}
-
 void QmlBackend::stopAutoConnect()
 {
     auto_connect_mac = {};
@@ -1880,722 +1454,10 @@ void QmlBackend::stopAutoConnect()
     emit autoConnectChanged();
 }
 
-QmlBackend::DisplayServer QmlBackend::displayServerAt(int index) const
-{
-    if (index < 0)
-        return {};
-    auto discovered = discovery_manager.GetHosts();
-    auto manual = settings->GetManualHosts();
-    if (index < discovered.size()) {
-        DisplayServer server;
-        server.valid = true;
-        server.discovered = true;
-        server.discovery_host = discovered.at(index);
-        auto host_mac = server.discovery_host.GetHostMAC();
-        server.registered = settings->GetRegisteredHostRegistered(host_mac);
-        QString duid = "";
-        if(!server.registered)
-        {
-            if(psn_nickname_hosts.contains(server.discovery_host.host_name))
-                duid = psn_nickname_hosts.value(server.discovery_host.host_name).GetDuid();
-            else if(!server.discovery_host.ps5)
-                duid =  psn_nickname_hosts.value(QString("Main PS4 Console")).GetDuid();
-        }
-        server.duid = std::move(duid);
-        if (server.registered)
-            server.registered_host = settings->GetRegisteredHost(host_mac);
-        for (int i = 0; i < manual.size(); i++)
-        {
-            const auto &manual_host = manual.at(i);
-            if(manual_host.GetRegistered() && manual_host.GetMAC() == host_mac && manual_host.GetHost() == server.discovery_host.host_addr)
-            {
-                server.manual_host = std::move(manual_host);
-                break;
-            }
-        }
-        return server;
-    }
-    index -= discovered.size();
-    if (index < manual.size()) {
-        DisplayServer server;
-        server.valid = true;
-        server.discovered = false;
-        server.manual_host = manual.at(index);
-        server.registered = false;
-        server.duid = QString();
-        if (server.manual_host.GetRegistered() && settings->GetRegisteredHostRegistered(server.manual_host.GetMAC())) {
-            server.registered = true;
-            server.registered_host = settings->GetRegisteredHost(server.manual_host.GetMAC());
-        }
-        return server;
-    }
-    index -= manual.size();
-    if (index < psn_hosts.count())
-    {
-        DisplayServer server;
-
-        QMapIterator<QString, PsnHost> i(psn_hosts);
-        size_t j = 0;
-        while (i.hasNext())
-        {
-            i.next();
-            PsnHost psn_host = i.value();
-            bool hidden = false;
-            for (const auto &host : discovery_manager.GetHosts())
-            {
-                if(host.host_name == psn_host.GetName())
-                    hidden = true;
-            }
-            if(hidden)
-                continue;
-            if(j == index)
-            {
-                server.valid = true;
-                server.discovered = false;
-                server.psn_host = std::move(psn_host);
-                server.duid = i.key();
-                server.registered = true;
-                server.registered_host = settings->GetNicknameRegisteredHost(server.psn_host.GetName());
-                return server;
-            }
-            j++;
-        }
-        return {};
-    }
-    return {};
-}
-
-bool QmlBackend::sendWakeup(const DisplayServer &server)
-{
-    if (!server.registered)
-        return false;
-    return sendWakeup(server.GetHostAddr(), server.registered_host.GetRPRegistKey(), server.IsPS5());
-}
-
-bool QmlBackend::sendWakeup(const QString &host, const QByteArray &regist_key, bool ps5)
-{
-    try {
-        discovery_manager.SendWakeup(host, regist_key, ps5);
-        return true;
-    } catch (const Exception &e) {
-        emit error(tr("Wakeup failed"), tr("Failed to send Wakeup packet:\n%1").arg(e.what()));
-        return false;
-    }
-}
-
-void QmlBackend::setAllowJoystickBackgroundEvents()
-{
-    ControllerManager::GetInstance()->SetAllowJoystickBackgroundEvents(settings->GetAllowJoystickBackgroundEvents());
-}
-
-void QmlBackend::setIsAppActive()
-{
-    ControllerManager::GetInstance()->SetIsAppActive(window->isActive());
-}
-
-uint32_t QmlBackend::getStreamShortcut() const
-{
-    if(!settings->GetStreamMenuEnabled())
-        return 0;
-	uint32_t stream_menu_shortcut1 = settings->GetStreamMenuShortcut1();
-	if(stream_menu_shortcut1 > 0)
-		stream_menu_shortcut1 = 1 << (stream_menu_shortcut1 - 1);
-	uint32_t stream_menu_shortcut2 = settings->GetStreamMenuShortcut2();
-	if(stream_menu_shortcut2 > 0)
-		stream_menu_shortcut2 = 1 << (stream_menu_shortcut2 - 1);
-	uint32_t stream_menu_shortcut3 = settings->GetStreamMenuShortcut3();
-	if(stream_menu_shortcut3 > 0)
-		stream_menu_shortcut3 = 1 << (stream_menu_shortcut3 - 1);
-	uint32_t stream_menu_shortcut4 = settings->GetStreamMenuShortcut4();
-	if(stream_menu_shortcut4 > 0)
-		stream_menu_shortcut4 = 1 << (stream_menu_shortcut4 - 1);
-    uint32_t shortcut = stream_menu_shortcut1 | stream_menu_shortcut2 | stream_menu_shortcut3 | stream_menu_shortcut4;
-    return shortcut;
-}
-
-void QmlBackend::updateStreamShortcut()
-{
-    uint32_t shortcut = getStreamShortcut();
-    for (const auto &controller : std::as_const(controllers)) {
-       controller->setEscapeShortcut(shortcut);
-    }
-}
-
-void QmlBackend::updateControllers()
-{
-    bool changed = false;
-    QMap<QString,QString> controller_mappings = settings->GetControllerMappings();
-    for (auto it = controllers.begin(); it != controllers.end();) {
-        if (ControllerManager::GetInstance()->GetAvailableControllers().contains(it.key())) {
-            it++;
-            continue;
-        }
-        if(it.key() == controller_mapping_id)
-        {
-            controller_mapping_controller = nullptr;
-            controllerMappingQuit();
-        }
-        QString vidpid = it.value()->GetVIDPID();
-        QString guid = it.value()->GetGUID();
-        it.value()->deleteLater();
-        it = controllers.erase(it);
-        changed = true;
-    }
-    uint32_t stream_shortcut = getStreamShortcut();
-    for (auto id : ControllerManager::GetInstance()->GetAvailableControllers()) {
-        if (controllers.contains(id))
-            continue;
-        auto controller = ControllerManager::GetInstance()->OpenController(id);
-        if (!controller)
-            continue;
-        controllers[id] = new QmlController(controller, stream_shortcut ,window, this);
-        connect(controllers[id], &QmlController::navButtonCaptured, this, &QmlBackend::navButtonCaptured);
-        QString vidpid = controller->GetVIDPIDString();
-        QString guid = controller->GetGUIDString();
-        QStringList existing_vidpid;
-        if(controller_guids_to_update.contains(vidpid))
-            existing_vidpid.append(controller_guids_to_update.value(vidpid));
-        existing_vidpid.append(guid);
-        controller_guids_to_update.insert(vidpid, existing_vidpid);
-        // replace old guid with new vid/pid
-        if(controller_mappings.contains(guid))
-        {
-            QString old_mapping = controller_mappings.value(guid);
-            qsizetype guid_string_length = old_mapping.indexOf(",") + 1;
-            old_mapping.remove(0, guid_string_length);
-            settings->RemoveControllerMapping(guid);
-            settings->SetControllerMapping(vidpid, old_mapping);
-            qCInfo(chiakiGui) << "Migrated controller mapping from platform-specific GUID: " << guid << " to platform-agnostic VID/PID: " << vidpid;
-        }
-        controller_guids_to_update.insert(vidpid, existing_vidpid);
-        connect(controller, &Controller::UpdatingControllerMapping, this, &QmlBackend::controllerMappingUpdate);
-        connect(controller, &Controller::NewButtonMapping, this, &QmlBackend::controllerMappingChangeButton);
-        changed = true;
-    }
-    if (changed)
-        emit controllersChanged();
-}
-
-void QmlBackend::setControllerMappingDefaultMapping(bool is_default_mapping)
-{
-    if(controller_mapping_default_mapping != is_default_mapping)
-    {
-        controller_mapping_default_mapping = is_default_mapping;
-        emit controllerMappingDefaultMappingChanged();
-    }
-}
-
-void QmlBackend::setControllerMappingAltered(bool altered)
-{
-    if(controller_mapping_altered != altered)
-    {
-        controller_mapping_altered = altered;
-        emit controllerMappingAlteredChanged();
-    }
-}
-
-void QmlBackend::setControllerMappingInProgress(bool is_in_progress)
-{
-    if(controller_mapping_in_progress != is_in_progress)
-    {
-        controller_mapping_in_progress = is_in_progress;
-        emit controllerMappingInProgressChanged();
-    }
-}
-
-void QmlBackend::setEnableAnalogStickMapping(bool enabled)
-{
-    if(enable_analog_stick_mapping != enabled)
-    {
-        if(controller_mapping_in_progress && controller_mapping_controller)
-            controller_mapping_controller->EnableAnalogStickMapping(enabled);
-        enable_analog_stick_mapping = enabled;
-        emit enableAnalogStickMappingChanged();
-    }
-}
-
-QVariantList QmlBackend::currentControllerMapping() const
-{
-    QVariantList out;
-    if(!controller_mapping_in_progress)
-        return out;
-	QMap<int, QStringList> result =
-	{
-		{CHIAKI_CONTROLLER_BUTTON_CROSS     , controller_mapping_controller_mappings.contains("a") ? controller_mapping_controller_mappings.value("a") : QStringList()},
-		{CHIAKI_CONTROLLER_BUTTON_MOON      , controller_mapping_controller_mappings.contains("b") ? controller_mapping_controller_mappings.value("b") : QStringList()},
-		{CHIAKI_CONTROLLER_BUTTON_BOX       , controller_mapping_controller_mappings.contains("x") ? controller_mapping_controller_mappings.value("x") : QStringList()},
-		{CHIAKI_CONTROLLER_BUTTON_PYRAMID   , controller_mapping_controller_mappings.contains("y") ? controller_mapping_controller_mappings.value("y") : QStringList()},
-		{CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT , controller_mapping_controller_mappings.contains("dpleft") ? controller_mapping_controller_mappings.value("dpleft") : QStringList()},
-		{CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT, controller_mapping_controller_mappings.contains("dpright") ? controller_mapping_controller_mappings.value("dpright") : QStringList()},
-		{CHIAKI_CONTROLLER_BUTTON_DPAD_UP   , controller_mapping_controller_mappings.contains("dpup") ? controller_mapping_controller_mappings.value("dpup") : QStringList()},
-		{CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN , controller_mapping_controller_mappings.contains("dpdown") ? controller_mapping_controller_mappings.value("dpdown") : QStringList()},
-		{CHIAKI_CONTROLLER_BUTTON_L1        , controller_mapping_controller_mappings.contains("leftshoulder") ? controller_mapping_controller_mappings.value("leftshoulder") : QStringList()},
-		{CHIAKI_CONTROLLER_BUTTON_R1        , controller_mapping_controller_mappings.contains("rightshoulder") ? controller_mapping_controller_mappings.value("rightshoulder") : QStringList()},
-		{CHIAKI_CONTROLLER_BUTTON_L3        , controller_mapping_controller_mappings.contains("leftstick") ? controller_mapping_controller_mappings.value("leftstick") : QStringList()},
-		{CHIAKI_CONTROLLER_BUTTON_R3        , controller_mapping_controller_mappings.contains("rightstick") ? controller_mapping_controller_mappings.value("rightstick") : QStringList()},
-		{CHIAKI_CONTROLLER_BUTTON_OPTIONS   , controller_mapping_controller_mappings.contains("start") ? controller_mapping_controller_mappings.value("start") : QStringList()},
-		{CHIAKI_CONTROLLER_BUTTON_SHARE     , controller_mapping_controller_mappings.contains("back") ? controller_mapping_controller_mappings.value("back") : QStringList()},
-		{CHIAKI_CONTROLLER_BUTTON_TOUCHPAD  , controller_mapping_controller_mappings.contains("touchpad") ? controller_mapping_controller_mappings.value("touchpad") : QStringList()},
-		{CHIAKI_CONTROLLER_BUTTON_PS        , controller_mapping_controller_mappings.contains("guide") ? controller_mapping_controller_mappings.value("guide") : QStringList()},
-		{CHIAKI_CONTROLLER_ANALOG_BUTTON_L2 , controller_mapping_controller_mappings.contains("lefttrigger") ? controller_mapping_controller_mappings.value("lefttrigger") : QStringList()},
-		{CHIAKI_CONTROLLER_ANALOG_BUTTON_R2 , controller_mapping_controller_mappings.contains("righttrigger") ? controller_mapping_controller_mappings.value("righttrigger") : QStringList()},
-		{static_cast<int>(ControllerButtonExt::ANALOG_STICK_LEFT_X)   , controller_mapping_controller_mappings.contains("leftx") ? controller_mapping_controller_mappings.value("leftx") : QStringList()},
-		{static_cast<int>(ControllerButtonExt::ANALOG_STICK_LEFT_Y)   , controller_mapping_controller_mappings.contains("lefty") ? controller_mapping_controller_mappings.value("lefty") : QStringList()},
-		{static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_X)  , controller_mapping_controller_mappings.contains("rightx") ? controller_mapping_controller_mappings.value("rightx") : QStringList()},
-		{static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_Y)  , controller_mapping_controller_mappings.contains("righty") ? controller_mapping_controller_mappings.value("righty") : QStringList()},
-        {static_cast<int>(ControllerButtonExt::MISC1)   ,      controller_mapping_controller_mappings.contains("misc1") ? controller_mapping_controller_mappings.value("misc1") : QStringList()},
-	};
-
-    for (auto it = result.cbegin(); it != result.cend(); ++it) {
-        QVariantMap m;
-        m["buttonName"] = Settings::GetChiakiControllerButtonName(it.key());
-        m["buttonValue"] = it.key();
-        m["physicalButton"] = it.value();
-        out.append(m);
-    }
-    return out;
-}
-
-void QmlBackend::updateControllerMappings()
-{
-    if(SDL_WasInit(SDL_INIT_GAMECONTROLLER)==0)
-        return;
-    QMap<QString,QString> controller_mappings = settings->GetControllerMappings();
-    QStringList mapping_vidpids = controller_mappings.keys();
-    for(int i=0; i<mapping_vidpids.length(); i++)
-    {
-        QString vidpid = mapping_vidpids.at(i);
-        if(!controller_guids_to_update.contains(vidpid))
-            continue;
-        QStringList guids_to_update = controller_guids_to_update.value(vidpid);
-        for(int j=0; j<guids_to_update.length(); j++)
-        {
-            QString guid = guids_to_update.at(j);
-            if(!controller_mapping_original_controller_mappings.contains(guid))
-            {
-                const SDL_JoystickGUID real_guid = SDL_JoystickGetGUIDFromString(guid.toUtf8().constData());
-                const char *mapping = SDL_GameControllerMappingForGUID(real_guid);
-                QString original_controller_mapping(mapping);
-                SDL_free((char *)mapping);
-                if(original_controller_mapping.isEmpty())
-                {
-                    qCWarning(chiakiGui) << "Error retrieving controller mapping of GUID " << guid << "with error: " << SDL_GetError();
-                    return;
-                }
-                controller_mapping_original_controller_mappings.insert(guid, original_controller_mapping);
-            }
-            QString controller_mapping_to_add = controller_mappings.value(vidpid);
-            controller_mapping_to_add.prepend(QString("%1,").arg(guid));
-            int result = SDL_GameControllerAddMapping(controller_mapping_to_add.toUtf8().constData());
-            switch(result)
-            {
-                case -1:
-                    qCWarning(chiakiGui) << "Error setting controller mapping for guid: " << guid << " with error: " << SDL_GetError();
-                    break;
-                case 0:
-                    qCInfo(chiakiGui) << "Updated controller mapping for guid: " << guid;
-                    break;
-                case 1:
-                    qCInfo(chiakiGui) << "Added controller mapping for guid: " << guid;
-                    break;
-                default:
-                    qCInfo(chiakiGui) << "Unidentified problem mapping for guid: " << guid;
-                    break;
-            }
-        }
-        controller_guids_to_update.remove(vidpid);
-    }
-}
-
-void QmlBackend::creatingControllerMapping(bool creating_controller_mapping)
-{
-    ControllerManager::GetInstance()->creatingControllerMapping(creating_controller_mapping);
-}
-
-void QmlBackend::beginControllerMapping(bool reset_mapping)
-{
-    controller_mapping_reset_requested = reset_mapping;
-    creatingControllerMapping(true);
-    // une seule manette branchée : inutile de la choisir en appuyant sur un de ses boutons
-    // (une même manette peut apparaître deux fois avec SDL sur macOS : on compare VID:PID)
-    QTimer::singleShot(0, this, [this]() {
-        if(controller_mapping_in_progress)
-            return;
-        Controller *only = nullptr;
-        QString only_vid_pid;
-        for(auto *c : std::as_const(controllers))
-        {
-            Controller *controller = c->GetController();
-            if(!controller || controller->IsSteamVirtual())
-                continue;
-            if(only && c->GetVIDPID() != only_vid_pid)
-                return;
-            only = controller;
-            only_vid_pid = c->GetVIDPID();
-        }
-        if(!only)
-            return;
-        creatingControllerMapping(false);
-        controllerMappingUpdate(only);
-    });
-}
-
-void QmlBackend::controllerMappingChangeButton(QString button)
-{
-    if(!controller_mapping_in_progress || !controller_mapping_controller)
-        return;
-    emit controllerMappingButtonSelected(std::move(button));
-}
-
-// nom SDL de chaque bouton PlayStation (« a » = Croix, « dpup » = haut…)
-static const QMap<int, QString> &ChiakiButtonSdlNames()
-{
-	static const QMap<int, QString> button_map =
-	{
-		{CHIAKI_CONTROLLER_BUTTON_CROSS     , "a"},
-		{CHIAKI_CONTROLLER_BUTTON_MOON      , "b"},
-		{CHIAKI_CONTROLLER_BUTTON_BOX       , "x"},
-		{CHIAKI_CONTROLLER_BUTTON_PYRAMID   , "y"},
-		{CHIAKI_CONTROLLER_BUTTON_DPAD_LEFT , "dpleft"},
-		{CHIAKI_CONTROLLER_BUTTON_DPAD_RIGHT, "dpright"},
-		{CHIAKI_CONTROLLER_BUTTON_DPAD_UP   , "dpup"},
-		{CHIAKI_CONTROLLER_BUTTON_DPAD_DOWN , "dpdown"},
-		{CHIAKI_CONTROLLER_BUTTON_L1        , "leftshoulder"},
-		{CHIAKI_CONTROLLER_BUTTON_R1        , "rightshoulder"},
-		{CHIAKI_CONTROLLER_BUTTON_L3        , "leftstick"},
-		{CHIAKI_CONTROLLER_BUTTON_R3        , "rightstick"},
-		{CHIAKI_CONTROLLER_BUTTON_OPTIONS   , "start"},
-		{CHIAKI_CONTROLLER_BUTTON_SHARE     , "back"},
-		{CHIAKI_CONTROLLER_BUTTON_TOUCHPAD  , "touchpad"},
-		{CHIAKI_CONTROLLER_BUTTON_PS        , "guide"},
-		{CHIAKI_CONTROLLER_ANALOG_BUTTON_L2 , "lefttrigger"},
-		{CHIAKI_CONTROLLER_ANALOG_BUTTON_R2 , "righttrigger"},
-		{static_cast<int>(ControllerButtonExt::ANALOG_STICK_LEFT_X)   , "leftx"},
-		{static_cast<int>(ControllerButtonExt::ANALOG_STICK_LEFT_Y)   , "lefty"},
-		{static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_X)  , "rightx"},
-		{static_cast<int>(ControllerButtonExt::ANALOG_STICK_RIGHT_Y)  , "righty"},
-        {static_cast<int>(ControllerButtonExt::MISC1)   , "misc1"},
-	};
-	return button_map;
-}
-
-void QmlBackend::updateButton(int chiaki_button, QString physical_button, int new_index)
-{
-    const QMap<int, QString> &button_map = ChiakiButtonSdlNames();
-    QString button = button_map.value(chiaki_button);
-    QString old_mapping = controller_mapping_physical_button_mappings.contains(physical_button) ? controller_mapping_physical_button_mappings.value(physical_button) : QString();
-    if(button == old_mapping)
-        return;
-    if(!old_mapping.isEmpty())
-    {
-        QStringList old_mapping_buttons = controller_mapping_controller_mappings.value(old_mapping);
-        if(old_mapping_buttons.length() > 1)
-        {
-            old_mapping_buttons.removeOne(physical_button);
-            controller_mapping_controller_mappings.insert(old_mapping, old_mapping_buttons);
-        }
-        else
-            controller_mapping_controller_mappings.remove(old_mapping);
-    }
-    QStringList new_mapping_buttons = controller_mapping_controller_mappings.value(button);
-    if(new_mapping_buttons.length() > new_index)
-    {
-        controller_mapping_physical_button_mappings.insert(new_mapping_buttons.at(new_index), QString());
-        new_mapping_buttons.remove(new_index);
-    }
-    if(new_index == 0)
-        new_mapping_buttons.prepend(physical_button);
-    else
-        new_mapping_buttons.append(physical_button);
-    controller_mapping_controller_mappings.insert(button, new_mapping_buttons);
-    controller_mapping_physical_button_mappings.insert(physical_button, button);
-    if(controller_mapping_controller_mappings == controller_mapping_applied_controller_mappings)
-        setControllerMappingAltered(false);
-    else
-        setControllerMappingAltered(true);
-    emit currentControllerMappingChanged();
-}
-
-// capture d'un bouton pour la navigation dans l'appli (Paramètres › Touches › Manette)
-void QmlBackend::startNavCapture()
-{
-    QmlController::SetNavCapture(true);
-}
-
-void QmlBackend::stopNavCapture()
-{
-    QmlController::SetNavCapture(false);
-}
-
-// affectation enregistrée de la première manette branchée : bouton physique (« b0 », « h0.1 »…) -> action PlayStation
-QVariantMap QmlBackend::physicalButtonActions() const
-{
-    QVariantMap out;
-    if(SDL_WasInit(SDL_INIT_GAMECONTROLLER) == 0)
-        return out;
-    for(auto *c : std::as_const(controllers))
-    {
-        Controller *controller = c->GetController();
-        if(!controller || controller->IsSteamVirtual() || !controller->GetController())
-            continue;
-        char *mapping = SDL_GameControllerMapping(controller->GetController());
-        if(!mapping)
-            continue;
-        QStringList fields = QString(mapping).split(u',');
-        SDL_free(mapping);
-        const QMap<int, QString> &names = ChiakiButtonSdlNames();
-        for(const QString &field : fields)
-        {
-            const QStringList parts = field.split(u':');
-            if(parts.length() != 2)
-                continue;
-            const int action = names.key(parts.at(0), 0);
-            if(action)
-                out.insert(parts.at(1), action);
-        }
-        break;
-    }
-    return out;
-}
-
-// boutons physiques de la manette en cours de réglage, avec l'action PlayStation que fait chacun (0 = aucune)
-QVariantList QmlBackend::controllerMappingPhysicalButtons() const
-{
-    QVariantList out;
-    if(!controller_mapping_in_progress)
-        return out;
-    const QMap<int, QString> &names = ChiakiButtonSdlNames();
-    for(auto it = controller_mapping_physical_button_mappings.cbegin(); it != controller_mapping_physical_button_mappings.cend(); ++it)
-    {
-        QVariantMap m;
-        m["physical"] = it.key();
-        m["action"] = it.value().isEmpty() ? 0 : names.key(it.value(), 0);
-        out.append(m);
-    }
-    return out;
-}
-
-// le bouton physique fait désormais l'action chiaki_button (0 = rien) ;
-// le bouton qui faisait déjà cette action reprend l'ancienne action de celui-ci (échange)
-void QmlBackend::assignPhysicalButton(QString physical_button, int chiaki_button)
-{
-    if(!controller_mapping_in_progress)
-        return;
-    const QString target = chiaki_button ? ChiakiButtonSdlNames().value(chiaki_button) : QString();
-    const QString old = controller_mapping_physical_button_mappings.value(physical_button);
-    if(target == old)
-        return;
-    if(!old.isEmpty())
-    {
-        QStringList old_buttons = controller_mapping_controller_mappings.value(old);
-        old_buttons.removeOne(physical_button);
-        if(old_buttons.isEmpty())
-            controller_mapping_controller_mappings.remove(old);
-        else
-            controller_mapping_controller_mappings.insert(old, old_buttons);
-    }
-    if(!target.isEmpty())
-    {
-        QStringList target_buttons = controller_mapping_controller_mappings.value(target);
-        if(!target_buttons.isEmpty() && !old.isEmpty())
-        {
-            const QString displaced = target_buttons.takeFirst();
-            QStringList old_buttons = controller_mapping_controller_mappings.value(old);
-            old_buttons.prepend(displaced);
-            controller_mapping_controller_mappings.insert(old, old_buttons);
-            controller_mapping_physical_button_mappings.insert(displaced, old);
-        }
-        target_buttons.prepend(physical_button);
-        controller_mapping_controller_mappings.insert(target, target_buttons);
-    }
-    controller_mapping_physical_button_mappings.insert(physical_button, target);
-    setControllerMappingAltered(controller_mapping_controller_mappings != controller_mapping_applied_controller_mappings);
-    emit currentControllerMappingChanged();
-}
-
-void QmlBackend::controllerMappingUpdate(Controller *controller)
-{
-    if(SDL_WasInit(SDL_INIT_GAMECONTROLLER)==0)
-        return;
-    if(controller_mapping_in_progress)
-        return;
-    controller_mapping_controller = controller;
-    if(controller->IsSteamVirtual() && !controller_mapping_reset_requested)
-    {
-        controllerMappingQuit();
-        emit controllerMappingSteamControllerSelected();
-        return;
-    }
-    controller_mapping_id = controller->GetDeviceID();
-    const char *mapping = SDL_GameControllerMapping(controller->GetController());
-    QString original_controller_mapping(mapping);
-    qCInfo(chiakiGui) << "Original controller mapping: " << original_controller_mapping;
-    SDL_free((char *)mapping);
-    if(original_controller_mapping.isEmpty())
-    {
-        qCWarning(chiakiGui) << "Error retrieving controller mapping " << SDL_GetError();
-        controller_mapping_id = -1;
-        controller_mapping_controller = nullptr;
-        return;
-    }
-	QStringList mapping_results = original_controller_mapping.split(u',');
-    if(mapping_results.length() < 2)
-    {
-        qCWarning(chiakiGui) << "Received invalid Mapping List";
-        controller_mapping_id = -1;
-        controller_mapping_controller = nullptr;
-        return;
-    }
-	controller_mapping_controller_guid = mapping_results.takeFirst();
-    controller_mapping_controller_vid_pid = controller_mapping_controller->GetVIDPIDString();
-    if(!controller_mapping_original_controller_mappings.contains(controller_mapping_controller_guid))
-    {
-        setControllerMappingDefaultMapping(true);
-        controller_mapping_original_controller_mappings.insert(controller_mapping_controller_guid, original_controller_mapping);
-    }
-    controller_mapping_controller->EnableAnalogStickMapping(enable_analog_stick_mapping);
-	controller_mapping_controller_type = mapping_results.takeFirst();
-    if(controller_mapping_controller_type == "*")
-    {
-        controller_mapping_controller_type = controller_mapping_controller->GetType();
-        if(controller_mapping_controller_type.isEmpty())
-            controller_mapping_controller_type = QString("Unidentified Controller");
-    }
-    for(int i=0; i<mapping_results.length(); i++)
-    {
-        QString individual_mapping = mapping_results.at(i);
-        QStringList individual_mapping_list = individual_mapping.split(u':');
-        if(individual_mapping_list.length() < 2)
-            continue;
-        QString key = individual_mapping_list.takeFirst();
-        if(controller_mapping_controller_mappings.contains(key))
-        {
-            auto update_list = controller_mapping_controller_mappings.value(key);
-            individual_mapping_list = update_list + individual_mapping_list;
-        }
-        controller_mapping_controller_mappings.insert(key, individual_mapping_list);
-        // only add buttons to physical mapping list
-        if(key != "crc" && key != "platform" && key != "type" && key != "hint" && !key.startsWith("sdk"))
-        {
-            for(int j = 0; j < individual_mapping_list.length(); j++)
-                controller_mapping_physical_button_mappings.insert(individual_mapping_list[j], key);
-        }
-    }
-
-    controller_mapping_applied_controller_mappings = controller_mapping_controller_mappings;
-    emit currentControllerTypeChanged();
-    emit currentControllerMappingChanged();
-    setControllerMappingInProgress(true);
-}
-
-void QmlBackend::controllerMappingSelectButton()
-{
-    if(controller_mapping_in_progress && controller_mapping_controller)
-        controller_mapping_controller->IsUpdatingMappingButton(true);
-}
-
-void QmlBackend::controllerMappingReset()
-{
-    if(!controller_mapping_original_controller_mappings.contains(controller_mapping_controller_guid) || SDL_WasInit(SDL_INIT_GAMECONTROLLER)==0 || !settings->GetControllerMappings().keys().contains(controller_mapping_controller_vid_pid))
-    {
-        controllerMappingQuit();
-        return;
-    }
-    settings->RemoveControllerMapping(controller_mapping_controller_vid_pid);
-    int result = SDL_GameControllerAddMapping(controller_mapping_original_controller_mappings.value(controller_mapping_controller_guid).toUtf8().constData());
-    switch(result)
-    {
-        case -1:
-            qCWarning(chiakiGui) << "Error setting controller mapping for guid: " << controller_mapping_controller_guid << " with error: " << SDL_GetError();
-            break;
-        case 0:
-            qCInfo(chiakiGui) << "Updated controller mapping for guid: " << controller_mapping_controller_guid;
-            break;
-        case 1:
-            qCInfo(chiakiGui) << "Added controller mapping for guid: " << controller_mapping_controller_guid;
-            break;
-        default:
-            qCInfo(chiakiGui) << "Unidentified problem mapping for guid: " << controller_mapping_controller_guid;
-            break;
-    }
-    controllerMappingQuit();
-}
-
-void QmlBackend::controllerMappingQuit()
-{
-    if(controller_mapping_in_progress && controller_mapping_controller)
-        controller_mapping_controller->IsUpdatingMappingButton(false);
-    else
-        creatingControllerMapping(false);
-    controller_mapping_reset_requested = false;
-    setEnableAnalogStickMapping(false);
-    controller_mapping_controller = nullptr;
-    setControllerMappingDefaultMapping(false);
-    setControllerMappingAltered(false);
-    controller_mapping_id = -1;
-    controller_mapping_controller_guid.clear();
-    controller_mapping_controller_vid_pid.clear();
-    controller_mapping_controller_type.clear();
-    controller_mapping_controller_mappings.clear();
-    controller_mapping_applied_controller_mappings.clear();
-    controller_mapping_physical_button_mappings.clear();
-    setControllerMappingInProgress(false);
-    emit currentControllerTypeChanged();
-    emit currentControllerMappingChanged();
-}
-
-void QmlBackend::controllerMappingButtonQuit()
-{
-    if(controller_mapping_in_progress && controller_mapping_controller)
-        controller_mapping_controller->IsUpdatingMappingButton(false);
-}
-
-void QmlBackend::controllerMappingApply()
-{
-    QString new_controller_mapping = controller_mapping_controller_type;
-    QMapIterator<QString, QStringList> i(controller_mapping_controller_mappings);
-    while (i.hasNext()) {
-        i.next();
-        const auto &physical_buttons = i.value();
-        for(int j = 0; j < physical_buttons.length(); j++)
-            new_controller_mapping += "," + (i.key() + ":" + physical_buttons.at(j));
-    }
-    // if user actually reset to default manually, reset mapping, else add
-    if(new_controller_mapping == controller_mapping_original_controller_mappings.value(controller_mapping_controller_guid))
-    {
-        settings->RemoveControllerMapping(controller_mapping_controller_vid_pid);
-        int result = SDL_GameControllerAddMapping(controller_mapping_original_controller_mappings.value(controller_mapping_controller_guid).toUtf8().constData());
-        switch(result)
-        {
-            case -1:
-                qCWarning(chiakiGui) << "Error setting controller mapping for guid: " << controller_mapping_controller_guid << " with error: " << SDL_GetError();
-                break;
-            case 0:
-                qCInfo(chiakiGui) << "Updated controller mapping for guid: " << controller_mapping_controller_guid;
-                break;
-            case 1:
-                qCInfo(chiakiGui) << "Added controller mapping for guid: " << controller_mapping_controller_guid;
-                break;
-            default:
-                qCInfo(chiakiGui) << "Unidentified problem mapping for guid: " << controller_mapping_controller_guid;
-                break;
-        }
-    }
-    else
-    {
-        QStringList existing_vidpid;
-        if(controller_guids_to_update.contains(controller_mapping_controller_vid_pid))
-            existing_vidpid.append(controller_guids_to_update.value(controller_mapping_controller_vid_pid));
-        existing_vidpid.append(controller_mapping_controller_guid);
-        controller_guids_to_update.insert(controller_mapping_controller_vid_pid, existing_vidpid);
-        settings->SetControllerMapping(controller_mapping_controller_vid_pid, new_controller_mapping);
-    }
-}
-
 void QmlBackend::updateDiscoveryHosts()
 {
     // Wakeup console that we are currently connecting to
-    for (const auto &host : discovery_manager.GetHosts()) {
+    for (const auto &host : consoles->discoveredHosts()) {
         if (host.host_addr != session_info.host)
             continue;
         if (host.ps5 != chiaki_target_is_ps5(session_info.target))
@@ -2613,29 +1475,24 @@ void QmlBackend::updateDiscoveryHosts()
             }
             else if(host.state == CHIAKI_DISCOVERY_HOST_STATE_STANDBY && session && session->IsConnecting())
             {
-                sendWakeup(host.host_addr, registered.GetRPRegistKey(), host.ps5);
+                consoles->sendWakeup(host.host_addr, registered.GetRPRegistKey(), host.ps5);
                 QString nickname = host.host_name;
                 wakeup_nickname = nickname;
-                waking_sleeping_nicknames.append(nickname);
-                QTimer::singleShot(WAKEUP_PSN_IGNORE_SECONDS * 1000, [this, nickname]{
-                    waking_sleeping_nicknames.removeOne(nickname);
-                    emit hostsChanged();
-                });
+                consoles->markWaking(nickname);
                 break;
             }
         }
     }
     if (autoConnect()) {
-        const int hosts_count = discovery_manager.GetHosts().count();
+        const int hosts_count = consoles->discoveredHosts().count();
         for (int i = 0; i < hosts_count; ++i) {
-            if (discovery_manager.GetHosts().at(i).GetHostMAC() != auto_connect_mac)
+            if (consoles->discoveredHosts().at(i).GetHostMAC() != auto_connect_mac)
                 continue;
             psn_auto_connect_timer->stop();
-            connectToHost(i, discovery_manager.GetHosts().at(i).host_name);
+            connectToHost(i, consoles->discoveredHosts().at(i).host_name);
             break;
         }
     }
-    emit hostsChanged();
 }
 
 void QmlBackend::prepareStartupPresentation(bool present_warmup)
@@ -2785,210 +1642,11 @@ void QmlBackend::createSteamShortcut(QString shortcutName, QString launchOptions
 }
 #endif
 
-QString QmlBackend::openPsnLink()
-{
-    QUrl url = psnLoginUrl();
-    QDesktopServices::openUrl(url);
-    url = psnLoginUrl();
-    return QString(url.toEncoded());
-}
-
 QString QmlBackend::openPlaceboOptionsLink()
 {
     QUrl url = QUrl("https://libplacebo.org/options/");
     QDesktopServices::openUrl(url);
-    url = psnLoginUrl();
     return QString(url.toEncoded());
-}
-
-bool QmlBackend::checkPsnRedirectURL(const QUrl &url) const
-{
-    return url.toString().startsWith(QString::fromStdString(PSNAuth::REDIRECT_PAGE));
-}
-
-void QmlBackend::initPsnAuth(const QUrl &url, const QJSValue &callback)
-{
-    const QJSValue cb = callback;
-    if (!url.toString().startsWith(QString::fromStdString(PSNAuth::REDIRECT_PAGE)))
-    {
-        if (cb.isCallable())
-            cb.call({QString("[E] Invalid URL: Please make sure you have copy and pasted the URL correctly."), false, true});
-        return;
-    }
-    const QString code = QUrlQuery(url).queryItemValue("code");
-    if (code.isEmpty())
-    {
-        if (cb.isCallable())
-            cb.call({QString("[E] Invalid code from redirect url."), false, true});
-        return;
-    }
-    PSNAccountID *psnId = new PSNAccountID(settings, this);
-    connect(psnId, &PSNAccountID::AccountIDResponse, this, &QmlBackend::updatePsnHosts);
-    connect(psnId, &PSNAccountID::AccountIDError, this, [cb](const QString &error) {
-        if (cb.isCallable())
-            cb.call({error, false, true});
-    });
-    connect(psnId, &PSNAccountID::AccountIDResponse, this, [cb]() {
-        if (cb.isCallable())
-            cb.call({QString("[I] PSN Remote Connection Tokens Generated."), true, true});
-    });
-    connect(psnId, &PSNAccountID::Finished, psnId, &QObject::deleteLater);
-    psnId->GetPsnAccountId(code);
-    emit psnTokenChanged();
-}
-
-void QmlBackend::refreshAuth()
-{
-    PSNToken *psnToken = new PSNToken(settings, this);
-    connect(psnToken, &PSNToken::PSNTokenError, this, [this](const QString &error) {
-        qCWarning(chiakiGui) << "Could not refresh token. Automatic PSN Connection Unavailable!" << error;
-    });
-    connect(psnToken, &PSNToken::UnauthorizedError, this, &QmlBackend::psnCredsExpired);
-    connect(psnToken, &PSNToken::PSNTokenSuccess, this, []() {
-        qCWarning(chiakiGui) << "PSN Remote Connection Tokens Refreshed.";
-    });
-    connect(psnToken, &PSNToken::PSNTokenSuccess, this, &QmlBackend::updatePsnHosts);
-    connect(psnToken, &PSNToken::Finished, psnToken, &QObject::deleteLater);
-    QString refresh_token = settings->GetPsnRefreshToken();
-    psnToken->RefreshPsnToken(std::move(refresh_token));
-}
-
-// profil du compte PSN (pseudo, avatar, PS Plus, trophées) affiché sur la carte de la console
-void QmlBackend::fetchPsnProfile()
-{
-    const QString token = settings->GetPsnAuthToken();
-    if (token.isEmpty())
-    {
-        if (!psn_profile.isEmpty())
-        {
-            psn_profile.clear();
-            emit psnProfileChanged();
-        }
-        return;
-    }
-    const QString url = "https://us-prof.np.community.playstation.net/userProfile/v1/users/me/profile2"
-        "?fields=onlineId,avatarUrls,plus,trophySummary(@default,level,progress,earnedTrophies),presences(@titleInfo)&avatarSizes=xl";
-    auto requester = new JsonRequester(this);
-    connect(requester, &JsonRequester::requestFinished, this, [this, requester](const QString &, const QJsonDocument &doc) {
-        const QJsonObject profile = doc.object().value("profile").toObject();
-        requester->deleteLater();
-        if (profile.isEmpty())
-            return;
-        const QJsonObject trophies = profile.value("trophySummary").toObject();
-        const QJsonObject earned = trophies.value("earnedTrophies").toObject();
-        const QJsonArray avatars = profile.value("avatarUrls").toArray();
-        QString avatar = avatars.isEmpty() ? QString() : avatars.first().toObject().value("avatarUrl").toString();
-        if (avatar.startsWith("http://"))
-            avatar.replace(0, 7, "https://");
-        const QJsonObject presence = profile.value("presences").toArray().first().toObject();
-        QVariantMap m;
-        m["onlineId"] = profile.value("onlineId").toString();
-        m["avatar"] = avatar;
-        m["plus"] = profile.value("plus").toInt() == 1;
-        m["level"] = trophies.value("level").toInt();
-        m["progress"] = trophies.value("progress").toInt();
-        m["platinum"] = earned.value("platinum").toInt();
-        m["gold"] = earned.value("gold").toInt();
-        m["silver"] = earned.value("silver").toInt();
-        m["bronze"] = earned.value("bronze").toInt();
-        m["online"] = presence.value("onlineStatus").toString() == "online";
-        m["game"] = presence.value("titleName").toString();
-        psn_profile = m;
-        emit psnProfileChanged();
-    });
-    connect(requester, &JsonRequester::requestError, this, [requester](const QString &, const QString &error, const QNetworkReply::NetworkError &) {
-        qCWarning(chiakiGui) << "Could not fetch PSN profile:" << error;
-        requester->deleteLater();
-    });
-    requester->makeGetRequest(url, JsonRequester::generateBearerAuthHeader(token));
-}
-
-void QmlBackend::updatePsnHosts()
-{
-    fetchPsnProfile();
-    if(updating_psn_hosts)
-    {
-        qCInfo(chiakiGui) << "Already updating psn hosts, skipping...";
-        return;
-    }
-    psn_hosts_future = QtConcurrent::run(&QmlBackend::updatePsnHostsThread, this);
-    psn_hosts_watcher.setFuture(psn_hosts_future);
-    updating_psn_hosts = true;
-}
-
-void QmlBackend::updatePsnHostsThread()
-{
-    QString psn_token = settings->GetPsnAuthToken();
-    if(psn_token.isEmpty())
-        return;
-
-    ChiakiHolepunchDeviceInfo *device_info_ps5 = nullptr;
-    size_t num_devices_ps5 = 0;
-    ChiakiLog backend_log;
-    chiaki_log_init(&backend_log, settings->GetLogLevelMask(), chiaki_log_cb_print, nullptr);
-    for(int i = 0; i < PSN_DEVICES_TRIES; i++)
-    {
-        ChiakiErrorCode err = chiaki_holepunch_list_devices(psn_token.toUtf8().constData(), CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5, &device_info_ps5, &num_devices_ps5, &backend_log);
-        if (err != CHIAKI_ERR_SUCCESS)
-        {
-            if(PSN_DEVICES_TRIES - i > 1)
-            {
-                qCWarning(chiakiGui) << "Failed to get PS5 devices trying again";
-                continue;
-            }
-            else
-            {
-                qCWarning(chiakiGui) << "Failed to get PS5 devices after max tries: " << PSN_DEVICES_TRIES;
-                num_devices_ps5 = 0;
-            }
-        }
-        break;
-    }
-    for (size_t i = 0; i < num_devices_ps5; i++)
-    {
-        ChiakiHolepunchDeviceInfo dev = device_info_ps5[i];
-        // skip devices that don't have remote play enabled
-        if(!dev.remoteplay_enabled)
-            continue;
-        QByteArray duid_bytes(reinterpret_cast<char*>(dev.device_uid), sizeof(dev.device_uid));
-        QString duid = QString(duid_bytes.toHex());
-        QString name = QString(dev.device_name);
-        bool ps5 = true;
-        PsnHost psn_host(duid, name, ps5);
-        if(!psn_nickname_hosts.contains(name))
-            psn_nickname_hosts.insert(name, psn_host);
-	    if(!psn_hosts.contains(duid) && settings->GetNicknameRegisteredHostRegistered(name))
-		    psn_hosts.insert(duid, psn_host);
-    }
-    QByteArray duid_bytes(32, 'A');
-    QString duid = QString(duid_bytes.toHex());
-    QString name = QString("Main PS4 Console");
-    bool ps5 = false;
-    PsnHost psn_host(duid, name, ps5);
-    if(!psn_nickname_hosts.contains(name))
-        psn_nickname_hosts.insert(name, psn_host);
-    if(!psn_hosts.contains(duid) && (settings->GetPS4RegisteredHostsRegistered() > 0))
-        psn_hosts.insert(duid, psn_host);
-
-    emit hostsChanged();
-    qCInfo(chiakiGui) << "Updated PSN hosts";
-    if(device_info_ps5)
-        chiaki_holepunch_free_device_list(&device_info_ps5);
-}
-
-void QmlBackend::refreshPsnToken()
-{
-    QString expiry_s = settings->GetPsnAuthTokenExpiry();
-    QString refresh = settings->GetPsnRefreshToken();
-    if(expiry_s.isEmpty() || refresh.isEmpty())
-        return;
-    QDateTime expiry = QDateTime::fromString(expiry_s, settings->GetTimeFormat());
-    // give 1 minute buffer
-    QDateTime now = QDateTime::currentDateTime().addSecs(60);
-    if (now >= expiry)
-        refreshAuth();
-    else
-        updatePsnHosts();
 }
 
 void PsnConnectionWorker::ConnectPsnConnection(StreamSession *session, const QString &duid, const bool &ps5)

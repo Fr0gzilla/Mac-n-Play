@@ -46,6 +46,16 @@ set(SOURCE_FILES
 	src/qmlmainwindow.cpp
 	include/qmlbackend.h
 	src/qmlbackend.cpp
+	include/controllermappingcontroller.h
+	src/controllermappingcontroller.cpp
+	include/connectedcontrollers.h
+	src/connectedcontrollers.cpp
+	include/consoleregistry.h
+	src/consoleregistry.cpp
+	include/psnaccount.h
+	src/psnaccount.cpp
+	include/macnplaylog.h
+	src/macnplaylog.cpp
 	include/qmlcontroller.h
 	src/qmlcontroller.cpp
 	include/qmlsettings.h

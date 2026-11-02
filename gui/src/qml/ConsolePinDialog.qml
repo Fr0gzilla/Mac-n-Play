@@ -13,7 +13,7 @@ DialogView {
     buttonText: qsTr("Set")
     buttonEnabled: pin.acceptableInput
     onAccepted: {
-        Chiaki.setConsolePin(consoleIndex, pin.text.trim());
+        Chiaki.consoles.setConsolePin(consoleIndex, pin.text.trim());
         stack.pop();
     }
     Item {
