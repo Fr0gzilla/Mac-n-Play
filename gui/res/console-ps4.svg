@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- PS4 vue de trois quarts, claire pour le fond sombre de Mac'n'Play.
+     « console » est dessinée par-dessus la bande lumineuse (light_on ou light_standby). -->
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="300" viewBox="0 0 300 150">
+  <defs>
+    <linearGradient id="dessus" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#9fb2d6"/>
+    </linearGradient>
+    <linearGradient id="dessusMat" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#d5def0"/>
+      <stop offset="1" stop-color="#8497bd"/>
+    </linearGradient>
+    <linearGradient id="face" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4f6189"/>
+      <stop offset="1" stop-color="#34436a"/>
+    </linearGradient>
+    <linearGradient id="faceDroite" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6c80aa"/>
+      <stop offset="1" stop-color="#4a5c86"/>
+    </linearGradient>
+  </defs>
+  <path id="light_on" d="M24 76 L135 109 L281 79 L281 85 L135 116 L24 82 Z" fill="#3fb6ff"/>
+  <path id="light_standby" d="M24 76 L135 109 L281 79 L281 85 L135 116 L24 82 Z" fill="#ffae2f"/>
+  <g id="console">
+    <!-- tranche du haut -->
+    <path d="M20 56 L170 28 L285 60 L135 92 Z" fill="url(#dessus)"/>
+    <path d="M78 45 L170 28 L285 60 L193 80 Z" fill="url(#dessusMat)"/>
+    <path d="M78 45 L193 80" stroke="#ffffff" stroke-opacity="0.7" stroke-width="1"/>
+    <path d="M20 56 L135 92 L135 106 L20 72 Z" fill="url(#face)"/>
+    <path d="M135 92 L285 60 L285 75 L135 106 Z" fill="url(#faceDroite)"/>
+    <!-- tranche du bas, légèrement en retrait -->
+    <path d="M26 86 L135 119 L135 138 L26 104 Z" fill="#2b3859"/>
+    <path d="M135 119 L280 89 L280 107 L135 138 Z" fill="#3e4f78"/>
+    <!-- liseré de lumière sur l'arête avant -->
+    <path d="M20 56 L135 92 L285 60" fill="none" stroke="#ffffff" stroke-opacity="0.9" stroke-width="1.2"/>
+  </g>
+</svg>

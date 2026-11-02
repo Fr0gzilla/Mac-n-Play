@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="100 160 824 720">
+  <defs>
+    <linearGradient id="onde" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ff8a5c"/>
+      <stop offset="1" stop-color="#ff4f7b"/>
+    </linearGradient>
+  </defs>
+  <g fill="none" stroke="url(#onde)" stroke-linecap="round">
+    <path d="M392 352 A170 170 0 0 1 632 352" stroke-width="44"/>
+    <path d="M318 280 A270 270 0 0 1 706 280" stroke-width="44" opacity="0.55"/>
+  </g>
+  <circle cx="512" cy="420" r="30" fill="url(#onde)"/>
+  <path fill="#ffffff" fill-rule="evenodd" d="M352 500 h320 c70 0 112 44 124 112 l30 150 c12 62 -54 98 -98 52 l-74 -78 h-284 l-74 78 c-44 46 -110 10 -98 -52 l30 -150 c12 -68 54 -112 124 -112 z M380 572 h-24 v32 h-32 v24 h32 v32 h24 v-32 h32 v-24 h-32 z M652 563 a17 17 0 1 0 0.01 0 z M652 635 a17 17 0 1 0 0.01 0 z M616 599 a17 17 0 1 0 0.01 0 z M688 599 a17 17 0 1 0 0.01 0 z"/>
+</svg>

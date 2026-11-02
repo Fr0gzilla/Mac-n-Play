@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="256" height="256">
+  <!-- Mac'n'Play : repère R1 en néon bleu, comme les symboles du fond -->
+  <path d="M 26 26 H 74 Q 92 26 92 44 V 56 Q 92 74 74 74 H 26 Q 8 74 8 56 V 44 Q 8 26 26 26 Z" fill="#0046c0" fill-opacity="0.18" stroke="#0046c0" stroke-width="9" stroke-linejoin="round"/>
+  <path d="M 26 26 H 74 Q 92 26 92 44 V 56 Q 92 74 74 74 H 26 Q 8 74 8 56 V 44 Q 8 26 26 26 Z" fill="none" stroke="#5b8fe0" stroke-width="3.5" stroke-linejoin="round"/>
+  <text x="50" y="60" text-anchor="middle" font-family="Helvetica" font-weight="bold" font-size="29" fill="#d6e6ff">R1</text>
+</svg>

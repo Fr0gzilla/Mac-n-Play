@@ -1,0 +1,114 @@
+name: Fabrication Mac'n'Play
+
+# Lancée à la main (onglet Actions) ou en poussant une étiquette vX.Y.Z :
+# dans ce cas, le .dmg est publié dans une Release du même nom.
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Mac'n'Play pour Mac Apple Silicon (macOS 15 et plus)
+    runs-on: macos-15
+    env:
+      MACOSX_DEPLOYMENT_TARGET: '15.0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Numéro de version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+          else
+            echo "VERSION=dev-${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+          fi
+
+      - name: Install protobuf
+        run: |
+          pip3 install --user 'protobuf>=5,<6' --break-system-packages
+
+      - name: Install brew dependencies
+        run: |
+          brew update
+          brew uninstall pkgconfig || true
+          brew install --force qt@6 ffmpeg pkgconfig opus openssl@3 cmake ninja nasm protobuf@29 speexdsp libplacebo wget python-setuptools json-c miniupnpc libevent
+          # en-têtes et bibliothèque OpenSSL de la même version (la 3, comme la copie de curl du projet)
+          brew unlink openssl@4 || true
+          brew link --force --overwrite openssl@3
+
+      - name: Install sdl2-compat
+        run: |
+          sudo INSTALL_PREFIX=/usr/local scripts/build-sdl2-compat.sh
+          sudo cp /usr/local/lib/pkgconfig/sdl2-compat.pc /usr/local/lib/pkgconfig/sdl2.pc
+
+      - name: Configure
+        run: |
+          cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCHIAKI_ENABLE_CLI=OFF -DCHIAKI_ENABLE_STEAMDECK_NATIVE=OFF -DMACNPLAY_VERSION="$VERSION" -DOPENSSL_ROOT_DIR="$(brew --prefix)/opt/openssl@3" -DCMAKE_PREFIX_PATH="$(brew --prefix)/opt/openssl@3;$(brew --prefix)/opt/qt@6;$(brew --prefix)/opt/protobuf@29"
+
+      - name: Build
+        run: |
+          export CPATH=$(brew --prefix)/opt/ffmpeg/include
+          cmake --build build --config Release --clean-first --target chiaki
+
+      - name: Package
+        run: |
+          APP="Mac'n'Play.app"
+          rm -rf "$APP" dmg Mac-n-Play-*.dmg
+          cp -a build/gui/chiaki.app "$APP"
+          cp scripts/qtwebengine_import.qml gui/src/qml/
+          $(brew --prefix)/opt/qt@6/bin/macdeployqt "$APP" -qmldir="$PWD/gui/src/qml" -libpath=$(brew --prefix)/lib
+          mkdir -p "$APP/Contents/Resources/vulkan/icd.d"
+          wget -q https://github.com/KhronosGroup/MoltenVK/releases/download/v1.2.9/MoltenVK-macos.tar && tar xf MoltenVK-macos.tar
+          cp MoltenVK/MoltenVK/dylib/macOS/* "$APP/Contents/Resources/vulkan/icd.d"
+          $(brew --prefix)/opt/qt@6/bin/macdeployqt "$APP" -qmldir="$PWD/gui/src/qml" -libpath=$(brew --prefix)/lib
+          if [[ -d "$APP/Contents/Frameworks/QtWebEngineCore.framework/Helpers/QtWebEngineProcess.app" ]]
+          then
+            ln -s ../../../../../../../Frameworks "$APP/Contents/Frameworks/QtWebEngineCore.framework/Helpers/QtWebEngineProcess.app/Contents"
+          fi
+          cp /usr/local/lib/libSDL3.dylib "$APP/Contents/MacOS/libSDL3.dylib"
+          cp /usr/local/lib/libSDL2-2.0.0.dylib "$APP/Contents/MacOS/libSDL2-2.0.0.dylib"
+          install_name_tool -id @executable_path/libSDL3.dylib "$APP/Contents/MacOS/libSDL3.dylib"
+          install_name_tool -id @executable_path/libSDL2-2.0.0.dylib "$APP/Contents/MacOS/libSDL2-2.0.0.dylib"
+          for old in /usr/local/lib/libSDL3.dylib @rpath/libSDL3.dylib /opt/homebrew/lib/libSDL3.dylib; do
+            install_name_tool -change "$old" @executable_path/libSDL3.dylib "$APP/Contents/MacOS/libSDL2-2.0.0.dylib" || true
+          done
+          for old in /usr/local/lib/libSDL2-2.0.0.dylib @rpath/libSDL2-2.0.0.dylib /opt/homebrew/lib/libSDL2-2.0.0.dylib; do
+            install_name_tool -change "$old" @executable_path/libSDL2-2.0.0.dylib "$APP/Contents/MacOS/chiaki" || true
+          done
+          ln -s libvulkan.1.dylib "$APP/Contents/Frameworks/vulkan"
+          codesign --force --entitlements gui/entitlements.xml --deep --sign - "$APP"
+          # fenêtre d'installation : l'appli et un raccourci vers Applications
+          mkdir dmg && cp -a "$APP" dmg/ && ln -s /Applications dmg/Applications
+          hdiutil create -volname "Mac'n'Play" -srcfolder dmg -format UDZO "Mac-n-Play-$VERSION.dmg"
+
+      - name: Check minimum macOS
+        run: |
+          # aucune bibliothèque embarquée ne doit exiger plus récent que macOS 15
+          bad=0
+          while IFS= read -r f; do
+            v=$(otool -l "$f" 2>/dev/null | awk '/LC_BUILD_VERSION/{f=1} f&&/minos/{print $2; exit}')
+            if [[ -n "$v" && "${v%%.*}" -gt 15 ]]; then echo "trop récent ($v) : $f"; bad=1; fi
+          done < <(find "Mac'n'Play.app" -type f \( -name '*.dylib' -o -perm +111 \))
+          exit $bad
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mac-n-Play-${{ env.VERSION }}
+          path: Mac-n-Play-*.dmg
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" Mac-n-Play-*.dmg --title "Mac'n'Play $VERSION" --notes-file RELEASE_NOTES.md

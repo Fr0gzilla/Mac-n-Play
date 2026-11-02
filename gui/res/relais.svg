@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="fond" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0" stop-color="#5a6cf0"/>
+      <stop offset="0.55" stop-color="#3b3fb8"/>
+      <stop offset="1" stop-color="#1c1a5e"/>
+    </linearGradient>
+    <radialGradient id="tache1" cx="0.78" cy="0.22" r="0.45">
+      <stop offset="0" stop-color="#ff7a8a" stop-opacity="0.75"/>
+      <stop offset="1" stop-color="#ff7a8a" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="tache2" cx="0.15" cy="0.9" r="0.5">
+      <stop offset="0" stop-color="#36c6ff" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#36c6ff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="verre" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.62"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.22"/>
+    </linearGradient>
+    <linearGradient id="bord" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="0.45" stop-color="#ffffff" stop-opacity="0.15"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.6"/>
+    </linearGradient>
+    <linearGradient id="onde" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffb08a"/>
+      <stop offset="1" stop-color="#ff4f7b"/>
+    </linearGradient>
+    <linearGradient id="reflet" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="cadre" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.55"/>
+      <stop offset="0.3" stop-color="#ffffff" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.25"/>
+    </linearGradient>
+    <clipPath id="forme"><rect x="100" y="100" width="824" height="824" rx="186"/></clipPath>
+  </defs>
+  <g clip-path="url(#forme)">
+    <rect x="100" y="100" width="824" height="824" fill="url(#fond)"/>
+    <rect x="100" y="100" width="824" height="824" fill="url(#tache1)"/>
+    <rect x="100" y="100" width="824" height="824" fill="url(#tache2)"/>
+    <rect x="100" y="100" width="824" height="460" fill="url(#reflet)"/>
+  </g>
+  <rect x="102" y="102" width="820" height="820" rx="184" fill="none" stroke="url(#cadre)" stroke-width="4"/>
+  <!-- ondes -->
+  <g fill="none" stroke-linecap="round">
+    <path d="M318 290 A270 270 0 0 1 706 290" stroke="url(#onde)" stroke-width="46" opacity="0.6"/>
+    <path d="M392 360 A170 170 0 0 1 632 360" stroke="url(#onde)" stroke-width="46"/>
+    <circle cx="512" cy="428" r="31" fill="url(#onde)" stroke="none"/>
+  </g>
+  <g fill="none" stroke="#ffffff" stroke-linecap="round" stroke-opacity="0.55">
+    <path d="M404 352 A158 158 0 0 1 620 352" stroke-width="8"/>
+  </g>
+  <!-- manette en verre -->
+  <g>
+    <path fill="url(#verre)" d="M352 500 h320 c70 0 112 44 124 112 l30 150 c12 62 -54 98 -98 52 l-74 -78 h-284 l-74 78 c-44 46 -110 10 -98 -52 l30 -150 c12 -68 54 -112 124 -112 z"/>
+  </g>
+  <path fill="none" stroke="url(#bord)" stroke-width="5" d="M352 502 h320 c70 0 110 44 122 110 l30 150 c12 60 -52 96 -96 50 l-74 -78 h-284 l-74 78 c-44 46 -108 10 -96 -50 l30 -150 c12 -66 52 -110 122 -110 z"/>
+  <g fill="#ffffff" fill-opacity="0.92">
+    <rect x="356" y="572" width="24" height="88" rx="10"/>
+    <rect x="324" y="604" width="88" height="24" rx="10"/>
+    <circle cx="652" cy="580" r="17"/>
+    <circle cx="652" cy="652" r="17"/>
+    <circle cx="616" cy="616" r="17"/>
+    <circle cx="688" cy="616" r="17"/>
+  </g>
+</svg>

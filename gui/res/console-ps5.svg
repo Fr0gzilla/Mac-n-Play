@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- PS5 debout, vue de face, dans le style néon de Mac'n'Play : deux plaques blanches en « ailes »
+     qui s'évasent en haut, le cœur noir avec les ports et le lecteur, le socle en bas.
+     La lumière (light_on ou light_standby) sort entre les plaques et le cœur. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="520" viewBox="0 0 120 260">
+  <defs>
+    <linearGradient id="plaqueG" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#b9c7e4"/>
+      <stop offset="0.55" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#dfe6f5"/>
+    </linearGradient>
+    <linearGradient id="plaqueD" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#e4eaf7"/>
+      <stop offset="0.45" stop-color="#f4f7fd"/>
+      <stop offset="1" stop-color="#a9b8d8"/>
+    </linearGradient>
+    <linearGradient id="coeur" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#0b0e18"/>
+      <stop offset="0.5" stop-color="#252c46"/>
+      <stop offset="1" stop-color="#0b0e18"/>
+    </linearGradient>
+    <linearGradient id="socle" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e9eef9"/>
+      <stop offset="1" stop-color="#9eaed0"/>
+    </linearGradient>
+  </defs>
+  <!-- lumière : deux liserés entre les plaques et le cœur -->
+  <path id="light_on" d="M 40 24 L 47 24 L 47 238 L 40 238 Z M 73 24 L 80 24 L 80 238 L 73 238 Z" fill="#3fb6ff"/>
+  <path id="light_standby" d="M 40 24 L 47 24 L 47 238 L 40 238 Z M 73 24 L 80 24 L 80 238 L 73 238 Z" fill="#ffae2f"/>
+  <g id="console">
+    <!-- socle -->
+    <path d="M 30 236 L 90 236 Q 98 237 100 244 L 102 250 Q 102 254 96 254 L 24 254 Q 18 254 18 250 L 20 244 Q 22 237 30 236 Z" fill="url(#socle)"/>
+    <path d="M 20 247 L 100 247" stroke="#ffffff" stroke-opacity="0.6" stroke-width="0.8"/>
+    <!-- cœur noir -->
+    <path d="M 47 20 L 73 20 L 73 240 L 47 240 Z" fill="url(#coeur)"/>
+    <!-- ports USB (haut et bas) -->
+    <rect x="57.5" y="118" width="5" height="8" rx="0.8" fill="#05070d" stroke="#5a6690" stroke-width="0.6"/>
+    <rect x="58.5" y="131" width="3" height="4.5" rx="0.6" fill="#05070d" stroke="#5a6690" stroke-width="0.6"/>
+    <rect x="58.5" y="208" width="3" height="5" rx="0.6" fill="#05070d" stroke="#5a6690" stroke-width="0.6"/>
+    <rect x="57.5" y="218" width="5" height="8" rx="0.8" fill="#05070d" stroke="#5a6690" stroke-width="0.6"/>
+    <!-- plaque gauche : pointe évasée en haut, taille fine au milieu -->
+    <path d="M 43.5 22 Q 30 14 13 3 Q 25 55 32 118 Q 37 182 29 240 L 43.5 240 Z" fill="url(#plaqueG)"/>
+    <path d="M 13 3 Q 25 55 32 118 Q 37 182 29 240" fill="none" stroke="#ffffff" stroke-width="1"/>
+    <!-- plaque droite (symétrique) avec la fente du lecteur -->
+    <path d="M 76.5 22 Q 90 14 107 3 Q 95 55 88 118 Q 83 182 91 240 L 76.5 240 Z" fill="url(#plaqueD)"/>
+    <path d="M 107 3 Q 95 55 88 118 Q 83 182 91 240" fill="none" stroke="#c4d0ea" stroke-width="1"/>
+    <rect x="82.5" y="160" width="2.6" height="66" rx="1.3" fill="#8b9bc0"/>
+    <rect x="83.2" y="161" width="1.2" height="64" rx="0.6" fill="#2a3150"/>
+    <!-- aérations : fines hachures le long du bord intérieur, en haut des plaques -->
+    <g stroke="#7d8db3" stroke-width="0.9" stroke-linecap="round">
+      <path d="M 35 34 L 40 30 M 35.8 44 L 40.6 40 M 36.5 54 L 40.8 50 M 37 64 L 41 60 M 37.4 74 L 41 70 M 37.8 84 L 41 80 M 38 94 L 41 90 M 38.2 104 L 41 100 M 38.4 114 L 41 110 M 38.5 124 L 41 120 M 38.6 134 L 41 130"/>
+      <path d="M 85 34 L 80 30 M 84.2 44 L 79.4 40 M 83.5 54 L 79.2 50 M 83 64 L 79 60 M 82.6 74 L 79 70 M 82.2 84 L 79 80 M 82 94 L 79 90 M 81.8 104 L 79 100 M 81.6 114 L 79 110 M 81.5 124 L 79 120 M 81.4 134 L 79 130"/>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="256" height="256">
+  <!-- Mac'n'Play : repère L3 (joystick enfoncé) en néon bleu, comme L1/R1 -->
+  <circle cx="50" cy="50" r="38" fill="#0046c0" fill-opacity="0.18" stroke="#0046c0" stroke-width="9"/>
+  <circle cx="50" cy="50" r="38" fill="none" stroke="#5b8fe0" stroke-width="3.5"/>
+  <text x="50" y="61" text-anchor="middle" font-family="Helvetica" font-weight="bold" font-size="30" fill="#d6e6ff">L3</text>
+</svg>

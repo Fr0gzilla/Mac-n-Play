@@ -1,0 +1,43 @@
+<RCC>
+  <qresource prefix="/">
+    <file>qtquickcontrols2.conf</file>
+    <file>Main.qml</file>
+    <file>MainView.qml</file>
+    <file>StreamView.qml</file>
+    <file>StreamMenuWindow.qml</file>
+        <file>StreamMenuContent.qml</file>
+    <file>ConfirmDialog.qml</file>
+    <file>RemindDialog.qml</file>
+    <file>DialogView.qml</file>
+    <file>ManualHostDialog.qml</file>
+    <file>RegistDialog.qml</file>
+    <file>SteamShortcutDialog.qml</file>
+    <file>SettingsDialog.qml</file>
+    <file>DisplaySettingsDialog.qml</file>
+    <file>PlaceboSettingsDialog.qml</file>
+    <file>PlaceboColorMappingDialog.qml</file>
+    <file>ProfileDialog.qml</file>
+    <file>ConsolePinDialog.qml</file>
+    <file>PSNLoginDialog.qml</file>
+    <file>PSNTokenDialog.qml</file>
+    <file>ControllerMappingDialog.qml</file>
+    <file>AutoConnectView.qml</file>
+    <file>EssentialSettings.qml</file>
+    <file>PsnView.qml</file>
+    <file>controls/Button.qml</file>
+    <file>controls/CheckBox.qml</file>
+    <file>controls/ComboBox.qml</file>
+    <file>controls/RadioButton.qml</file>
+    <file>controls/Slider.qml</file>
+    <file>controls/TextField.qml</file>
+    <file>controls/GlassBackground.qml</file>
+    <file>controls/GlassButton.qml</file>
+    <file>controls/GlassScrim.qml</file>
+    <file>controls/StatusPill.qml</file>
+    <file>controls/PsBackground.qml</file>
+    <file>controls/PsTab.qml</file>
+    <file>controls/PsScrollBar.qml</file>
+    <file>controls/PsButtonInfo.qml</file>
+    <file>controls/CaptureDialog.qml</file>
+  </qresource>
+</RCC>
