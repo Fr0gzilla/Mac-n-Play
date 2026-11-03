@@ -13,7 +13,7 @@ cask "macnplay" do
   end
 
   depends_on arch: :arm64
-  depends_on macos: ">= :sequoia"
+  depends_on macos: :sequoia
 
   app "Mac'n'Play.app"
 

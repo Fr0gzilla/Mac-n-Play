@@ -50,8 +50,11 @@ Si vous utilisez [Homebrew](https://brew.sh) :
 
 ```sh
 brew tap fr0gzilla/macnplay https://github.com/Fr0gzilla/Mac-n-Play
+brew trust fr0gzilla/macnplay
 brew install --cask macnplay
 ```
+
+La deuxième ligne indique à Homebrew que vous faites confiance à ce dépôt : il l'exige pour toute appli qui ne vient pas de son catalogue officiel.
 
 Mises à jour : `brew upgrade --cask macnplay`.
 
@@ -133,7 +136,7 @@ Les étapes complètes sont dans [`.github/workflows/build-macos-arm.yml`](.gith
 ### Install
 
 1. Download `Mac-n-Play-….dmg` from the [releases page](https://github.com/Fr0gzilla/Mac-n-Play/releases/latest), open it and drag **Mac'n'Play** to **Applications**.
-   With Homebrew: `brew tap fr0gzilla/macnplay https://github.com/Fr0gzilla/Mac-n-Play && brew install --cask macnplay`
+   With Homebrew: `brew tap fr0gzilla/macnplay https://github.com/Fr0gzilla/Mac-n-Play && brew trust fr0gzilla/macnplay && brew install --cask macnplay`
 2. The app is not notarized by Apple, so macOS blocks the first launch. Try to open it, click **OK**, then go to **System Settings › Privacy & Security** and click **Open Anyway**. Or run:
    ```sh
    xattr -dr com.apple.quarantine "/Applications/Mac'n'Play.app"
