@@ -343,10 +343,10 @@ Flickable {
 
         SettingRow {
             title: qsTr("PlayStation Network")
-            hint: Chiaki.settings.psnAuthToken ? qsTr("Connected: automatic pairing and play away from home.") : qsTr("Not connected.")
+            hint: Chiaki.psn.connected ? qsTr("Connected: automatic pairing and play away from home.") : qsTr("Not connected.")
             C.Button {
                 anchors { left: parent.left; verticalCenter: parent.verticalCenter }
-                text: Chiaki.settings.psnAuthToken ? qsTr("Reconnect") : qsTr("Connect to PSN")
+                text: Chiaki.psn.connected ? qsTr("Reconnect") : qsTr("Connect to PSN")
                 onClicked: root.showPSNTokenDialog(false)
             }
         }

@@ -78,8 +78,9 @@ static const char *PROFILE_URL = "https://us-prof.np.community.playstation.net/u
     "?fields=onlineId,avatarUrls,plus,trophySummary(@default,level,progress,earnedTrophies),presences(@titleInfo)&avatarSizes=xl";
 
 PsnAccount::PsnAccount(Settings *settings, QObject *parent)
-    : QObject(parent), settings(settings)
+    : QObject(parent), settings(nullptr)
 {
+    setSettings(settings);
     loadCachedProfile();
     connect(this, &PsnAccount::tokensReady, this, &PsnAccount::fetchProfile);
     // refresh() renouvelle les jetons s'ils expirent, puis relit le profil
@@ -95,6 +96,21 @@ PsnAccount::~PsnAccount()
 #endif
 }
 
+void PsnAccount::setSettings(Settings *new_settings)
+{
+    if(settings)
+        disconnect(settings, nullptr, this, nullptr);
+    settings = new_settings;
+    connect(settings, &Settings::PsnTokensUpdated, this, &PsnAccount::connectedChanged);
+    emit connectedChanged();
+}
+
+bool PsnAccount::connected() const
+{
+    return !settings->GetPsnRefreshToken().isEmpty() && !settings->GetPsnAuthToken().isEmpty()
+        && !settings->GetPsnAuthTokenExpiry().isEmpty() && !settings->GetPsnAccountId().isEmpty();
+}
+
 QUrl PsnAccount::loginUrl() const
 {
     size_t duid_size = CHIAKI_DUID_STR_SIZE;
@@ -105,8 +121,10 @@ QUrl PsnAccount::loginUrl() const
 
 QString PsnAccount::openLoginPage()
 {
-    QDesktopServices::openUrl(loginUrl());
-    return QString(loginUrl().toEncoded());
+    // une seule adresse : chaque appel à loginUrl() crée un identifiant d'appareil différent
+    const QUrl url = loginUrl();
+    QDesktopServices::openUrl(url);
+    return QString(url.toEncoded());
 }
 
 bool PsnAccount::isRedirectUrl(const QUrl &url) const
@@ -191,15 +209,28 @@ void PsnAccount::renewTokens()
     request->RefreshPsnToken(settings->GetPsnRefreshToken());
 }
 
-void PsnAccount::forgetCredentials()
+void PsnAccount::eraseTokens()
 {
-    qCWarning(logPsn) << "Jetons : refusés par Sony, ils sont effacés et il faut se reconnecter";
     settings->SetPsnRefreshToken(QString());
     settings->SetPsnAuthToken(QString());
     settings->SetPsnAuthTokenExpiry(QString());
     settings->SetPsnAccountId(QString());
     clearProfile();
+    emit connectedChanged();
+    emit accountForgotten();
+}
+
+void PsnAccount::forgetCredentials()
+{
+    qCWarning(logPsn) << "Jetons : refusés par Sony, ils sont effacés et il faut se reconnecter";
+    eraseTokens();
     emit credentialsExpired();
+}
+
+void PsnAccount::logout()
+{
+    qCInfo(logPsn) << "Déconnexion du compte PSN demandée";
+    eraseTokens();
 }
 
 void PsnAccount::refresh()
@@ -238,7 +269,8 @@ void PsnAccount::fetchProfile()
         QString avatar = avatars.isEmpty() ? QString() : avatars.first().toObject().value("avatarUrl").toString();
         if(avatar.startsWith("http://"))
             avatar.replace(0, 7, "https://");
-        const QJsonObject presence = profile.value("presences").toArray().first().toObject();
+        const QJsonArray presences = profile.value("presences").toArray();
+        const QJsonObject presence = presences.isEmpty() ? QJsonObject() : presences.first().toObject();
         QVariantMap m;
         m["onlineId"] = profile.value("onlineId").toString();
         m["avatar"] = avatar;

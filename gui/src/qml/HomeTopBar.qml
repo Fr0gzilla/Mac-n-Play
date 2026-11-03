@@ -12,7 +12,7 @@ ToolBar {
     // largeur de la page d'accueil, pour replier les libellés quand la fenêtre est étroite
     property real pageWidth: width
     function openSettings() { settingsButton.clicked(); }
-    function refreshPsn() { if (Chiaki.settings.psnAuthToken) psnRefresh.clicked(); }
+    function refreshPsn() { if (Chiaki.psn.connected) psnRefresh.clicked(); }
     id: toolBar
     anchors {
         top: parent.top
@@ -135,7 +135,7 @@ ToolBar {
                 psnRefreshMax.restart();
                 Chiaki.psn.refresh();
             }
-            visible: Chiaki.settings.psnAuthToken
+            visible: Chiaki.psn.connected
             property bool answered: false
             Connections {
                 target: Chiaki.consoles
@@ -163,7 +163,7 @@ ToolBar {
         C.StatusPill {
             Layout.alignment: Qt.AlignVCenter
             Layout.preferredHeight: 48
-            readonly property bool connected: !!Chiaki.settings.psnAuthToken
+            readonly property bool connected: Chiaki.psn.connected
             dot: connected ? "#4ade80" : "#6b7280"
             text: pageWidth < 950 ? "PSN" : (connected ? qsTr("Connected to PSN") : qsTr("PSN not connected"))
             opacity: psnArea.containsMouse ? 1.0 : 0.85

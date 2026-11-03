@@ -13,20 +13,39 @@
 static const int PSN_DEVICES_TRIES = 2;
 // durée pendant laquelle une console qui se réveille n'est pas proposée via le compte PSN
 static const int WAKEUP_PSN_IGNORE_SECONDS = 10;
+// adresse MAC de la PS5 de démonstration (MACNPLAY_DEMO_PS5)
+static const char *DEMO_CONSOLE_MAC = "000000000000";
 // nom que Sony donne à la PS4 principale du compte (une seule PS4 peut jouer à distance)
 static const QString MAIN_PS4_NAME = QStringLiteral("Main PS4 Console");
 
-// association avec une console : fait le lien entre la bibliothèque Chiaki (fil séparé) et Qt
+// association avec une console : fait le lien entre la bibliothèque Chiaki (fil séparé) et Qt.
+// L'objet est détruit dans le fil de l'interface une fois l'association terminée ;
+// son destructeur attend la fin du fil de la bibliothèque et libère ses ressources.
 class ConsoleRegistration : public QObject
 {
     Q_OBJECT
 
 public:
-    ConsoleRegistration(const ChiakiRegistInfo &info, uint32_t log_mask, QObject *parent)
+    ConsoleRegistration(uint32_t log_mask, QObject *parent)
         : QObject(parent)
     {
         chiaki_log_init(&chiaki_log, log_mask, &ConsoleRegistration::onLog, this);
-        chiaki_regist_start(&chiaki_regist, &chiaki_log, &info, &ConsoleRegistration::onEvent, this);
+    }
+
+    ~ConsoleRegistration() override
+    {
+        if(started)
+        {
+            chiaki_regist_stop(&chiaki_regist);
+            chiaki_regist_fini(&chiaki_regist);
+        }
+    }
+
+    // false si l'association n'a même pas pu démarrer
+    bool start(const ChiakiRegistInfo &info)
+    {
+        started = chiaki_regist_start(&chiaki_regist, &chiaki_log, &info, &ConsoleRegistration::onEvent, this) == CHIAKI_ERR_SUCCESS;
+        return started;
     }
 
 signals:
@@ -42,6 +61,7 @@ private:
         QMetaObject::invokeMethod(self, std::bind(&ConsoleRegistration::log, self, level, QString::fromUtf8(msg)), Qt::QueuedConnection);
     }
 
+    // appelé dans le fil de la bibliothèque : tout est renvoyé au fil de l'interface
     static void onEvent(ChiakiRegistEvent *event, void *user)
     {
         auto self = static_cast<ConsoleRegistration *>(user);
@@ -49,25 +69,23 @@ private:
         {
             case CHIAKI_REGIST_EVENT_TYPE_FINISHED_SUCCESS:
                 QMetaObject::invokeMethod(self, std::bind(&ConsoleRegistration::succeeded, self, *event->registered_host), Qt::QueuedConnection);
-                QMetaObject::invokeMethod(self, &QObject::deleteLater, Qt::QueuedConnection);
                 break;
             case CHIAKI_REGIST_EVENT_TYPE_FINISHED_FAILED:
+            case CHIAKI_REGIST_EVENT_TYPE_FINISHED_CANCELED:
                 QMetaObject::invokeMethod(self, &ConsoleRegistration::failed, Qt::QueuedConnection);
-                QMetaObject::invokeMethod(self, &QObject::deleteLater, Qt::QueuedConnection);
-                break;
-            default:
                 break;
         }
     }
 
     ChiakiLog chiaki_log;
     ChiakiRegist chiaki_regist;
+    bool started = false;
 };
 
 ConsoleRegistry::ConsoleRegistry(Settings *settings, QObject *parent)
     : QObject(parent)
 {
-    connect(&psn_consoles_watcher, &QFutureWatcher<void>::finished, this, [this] { fetching_psn_consoles = false; });
+    connect(&psn_consoles_watcher, &QFutureWatcher<PsnConsoles>::finished, this, &ConsoleRegistry::onPsnConsolesFetched);
     connect(&discovery_manager, &DiscoveryManager::HostsUpdated, this, [this] {
         emit discoveredHostsUpdated();
         emit listChanged();
@@ -81,6 +99,9 @@ void ConsoleRegistry::setSettings(Settings *new_settings)
     if(settings)
         disconnect(settings, nullptr, this, nullptr);
     settings = new_settings;
+    // autre profil de réglages : les consoles du compte seront redemandées
+    psn_hosts.clear();
+    psn_nickname_hosts.clear();
     connect(settings, &Settings::RegisteredHostsUpdated, this, &ConsoleRegistry::listChanged);
     connect(settings, &Settings::ManualHostsUpdated, this, &ConsoleRegistry::listChanged);
     connect(settings, &Settings::HiddenHostsUpdated, this, &ConsoleRegistry::hiddenChanged);
@@ -100,9 +121,12 @@ int ConsoleRegistry::registeredCount() const
     return settings->GetRegisteredHosts().size();
 }
 
-QVariantList ConsoleRegistry::list() const
+// la liste de l'accueil, construite en un seul endroit : ce qui est affiché (map pour le QML)
+// et ce sur quoi on agit (ConsoleEntry) viennent de la même boucle, donc la console
+// à la position N de l'écran est toujours celle que consoleAt(N) renvoie
+QList<ConsoleRegistry::Row> ConsoleRegistry::rows() const
 {
-    QVariantList out;
+    QList<Row> out;
     QList<QString> local_nicknames;
     QList<ManualHost> discovered_manual_hosts;
     int registered_discovered_ps4s = 0;
@@ -131,6 +155,17 @@ QVariantList ConsoleRegistry::list() const
                 settings->AddHiddenHost(hidden_host);
             }
         }
+        Row row;
+        row.entry.valid = true;
+        row.entry.discovered = true;
+        row.entry.discovery_host = host;
+        row.entry.registered = registered;
+        if(registered)
+            row.entry.registered_host = settings->GetRegisteredHost(host_mac);
+        else if(psn_nickname_hosts.contains(host.host_name))
+            row.entry.duid = psn_nickname_hosts.value(host.host_name).GetDuid();
+        else if(!host.ps5)
+            row.entry.duid = psn_nickname_hosts.value(MAIN_PS4_NAME).GetDuid();
         bool manual = false;
         for(const auto &manual_host : manual_hosts)
         {
@@ -138,21 +173,14 @@ QVariantList ConsoleRegistry::list() const
             {
                 manual = true;
                 discovered_manual_hosts.append(manual_host);
+                row.entry.manual_host = manual_host;
             }
         }
-        QString duid;
-        if(!registered)
-        {
-            if(psn_nickname_hosts.contains(host.host_name))
-                duid = psn_nickname_hosts.value(host.host_name).GetDuid();
-            else if(!host.ps5)
-                duid = psn_nickname_hosts.value(MAIN_PS4_NAME).GetDuid();
-        }
-        QVariantMap m;
+        QVariantMap &m = row.view;
         m["discovered"] = true;
         m["manual"] = manual;
         m["name"] = host.host_name;
-        m["duid"] = duid;
+        m["duid"] = row.entry.duid;
         m["address"] = host.host_addr;
         m["ps5"] = host.ps5;
         m["mac"] = host_mac.ToString();
@@ -162,7 +190,7 @@ QVariantList ConsoleRegistry::list() const
         m["registered"] = registered;
         m["display"] = !hidden;
         local_nicknames.append(host.host_name);
-        out.append(m);
+        out.append(row);
         if(!host.ps5 && registered)
             registered_discovered_ps4s++;
     }
@@ -170,7 +198,10 @@ QVariantList ConsoleRegistry::list() const
     // 2. consoles ajoutées à la main (cachées si elles sont déjà trouvées sur le réseau)
     for(const auto &host : manual_hosts)
     {
-        QVariantMap m;
+        Row row;
+        row.entry.valid = true;
+        row.entry.manual_host = host;
+        QVariantMap &m = row.view;
         m["discovered"] = false;
         m["manual"] = true;
         m["name"] = host.GetHost();
@@ -182,22 +213,32 @@ QVariantList ConsoleRegistry::list() const
         if(host.GetRegistered() && settings->GetRegisteredHostRegistered(host.GetMAC()))
         {
             const auto registered = settings->GetRegisteredHost(host.GetMAC());
+            row.entry.registered = true;
+            row.entry.registered_host = registered;
             m["registered"] = true;
             m["name"] = registered.GetServerNickname();
             m["ps5"] = chiaki_target_is_ps5(registered.GetTarget());
             m["mac"] = registered.GetServerMAC().ToString();
         }
-        out.append(m);
+        out.append(row);
     }
 
     // 3. consoles du compte PSN, seulement si elles ne sont pas déjà sur le réseau local
+    //    (ni en train de se réveiller : elles vont réapparaître sur le réseau)
     if(registered_discovered_ps4s >= settings->GetPS4RegisteredHostsRegistered())
         local_nicknames.append(MAIN_PS4_NAME);
-    for(const auto &host : psn_hosts)
+    for(auto it = psn_hosts.cbegin(); it != psn_hosts.cend(); ++it)
     {
+        const PsnHost &host = it.value();
         if(local_nicknames.contains(host.GetName()) || waking_nicknames.contains(host.GetName()))
             continue;
-        QVariantMap m;
+        Row row;
+        row.entry.valid = true;
+        row.entry.psn_host = host;
+        row.entry.duid = it.key();
+        row.entry.registered = true;
+        row.entry.registered_host = settings->GetNicknameRegisteredHost(host.GetName());
+        QVariantMap &m = row.view;
         m["discovered"] = false;
         m["manual"] = false;
         m["display"] = true;
@@ -207,13 +248,14 @@ QVariantList ConsoleRegistry::list() const
         m["address"] = "";
         m["registered"] = true;
         m["ps5"] = host.IsPS5();
-        out.append(m);
+        out.append(row);
     }
 
     // démonstration : MACNPLAY_DEMO_PS5=1 ajoute une fausse PS5 pour voir l'accueil avec deux consoles
     if(qEnvironmentVariableIsSet("MACNPLAY_DEMO_PS5"))
     {
-        QVariantMap m;
+        Row row;  // entrée invalide : on ne peut pas jouer sur une console de démonstration
+        QVariantMap &m = row.view;
         m["demo"] = true;
         m["discovered"] = true;
         m["manual"] = false;
@@ -222,12 +264,20 @@ QVariantList ConsoleRegistry::list() const
         m["duid"] = "";
         m["address"] = "192.168.1.72";
         m["ps5"] = true;
-        m["mac"] = "000000000000";
+        m["mac"] = DEMO_CONSOLE_MAC;
         m["state"] = "standby";
         m["app"] = "";
         m["registered"] = true;
-        out.append(m);
+        out.append(row);
     }
+    return out;
+}
+
+QVariantList ConsoleRegistry::list() const
+{
+    QVariantList out;
+    for(const Row &row : rows())
+        out.append(row.view);
     return out;
 }
 
@@ -244,72 +294,12 @@ QVariantList ConsoleRegistry::hidden() const
     return out;
 }
 
-// même ordre que list() : réseau local, puis ajoutées à la main, puis compte PSN
 ConsoleEntry ConsoleRegistry::consoleAt(int index) const
 {
-    if(index < 0)
+    const QList<Row> all = rows();
+    if(index < 0 || index >= all.size())
         return {};
-    const auto discovered = discovery_manager.GetHosts();
-    const auto manual = settings->GetManualHosts();
-    if(index < discovered.size())
-    {
-        ConsoleEntry entry;
-        entry.valid = true;
-        entry.discovered = true;
-        entry.discovery_host = discovered.at(index);
-        const HostMAC host_mac = entry.discovery_host.GetHostMAC();
-        entry.registered = settings->GetRegisteredHostRegistered(host_mac);
-        if(entry.registered)
-            entry.registered_host = settings->GetRegisteredHost(host_mac);
-        else if(psn_nickname_hosts.contains(entry.discovery_host.host_name))
-            entry.duid = psn_nickname_hosts.value(entry.discovery_host.host_name).GetDuid();
-        else if(!entry.discovery_host.ps5)
-            entry.duid = psn_nickname_hosts.value(MAIN_PS4_NAME).GetDuid();
-        for(const auto &manual_host : manual)
-        {
-            if(manual_host.GetRegistered() && manual_host.GetMAC() == host_mac && manual_host.GetHost() == entry.discovery_host.host_addr)
-            {
-                entry.manual_host = manual_host;
-                break;
-            }
-        }
-        return entry;
-    }
-    index -= discovered.size();
-    if(index < manual.size())
-    {
-        ConsoleEntry entry;
-        entry.valid = true;
-        entry.manual_host = manual.at(index);
-        if(entry.manual_host.GetRegistered() && settings->GetRegisteredHostRegistered(entry.manual_host.GetMAC()))
-        {
-            entry.registered = true;
-            entry.registered_host = settings->GetRegisteredHost(entry.manual_host.GetMAC());
-        }
-        return entry;
-    }
-    index -= manual.size();
-    int psn_index = 0;
-    for(auto it = psn_hosts.cbegin(); it != psn_hosts.cend(); ++it)
-    {
-        bool on_local_network = false;
-        for(const auto &host : discovered)
-            on_local_network = on_local_network || host.host_name == it.value().GetName();
-        if(on_local_network)
-            continue;
-        if(psn_index == index)
-        {
-            ConsoleEntry entry;
-            entry.valid = true;
-            entry.psn_host = it.value();
-            entry.duid = it.key();
-            entry.registered = true;
-            entry.registered_host = settings->GetNicknameRegisteredHost(entry.psn_host.GetName());
-            return entry;
-        }
-        psn_index++;
-    }
-    return {};
+    return all.at(index).entry;
 }
 
 QString ConsoleRegistry::registeredPs4Name() const
@@ -324,12 +314,12 @@ QString ConsoleRegistry::registeredPs4Name() const
 
 int ConsoleRegistry::psnConsoleIndex(const QString &nickname) const
 {
-    int i = 0;
-    for(const auto &host : psn_hosts)
+    const QList<Row> all = rows();
+    for(int i = 0; i < all.size(); i++)
     {
-        if(host.GetName() == nickname)
-            return discovery_manager.GetHosts().size() + settings->GetManualHosts().size() + i;
-        i++;
+        const ConsoleEntry &entry = all.at(i).entry;
+        if(entry.valid && !entry.discovered && !entry.duid.isEmpty() && entry.psn_host.GetName() == nickname)
+            return i;
     }
     return -1;
 }
@@ -472,7 +462,7 @@ bool ConsoleRegistry::registerConsole(const QString &address, const QString &psn
     }
 
     qCInfo(logConsoles) << "Association avec" << address << "(" << (broadcast ? "recherche sur le réseau" : "adresse directe") << ")";
-    auto registration = new ConsoleRegistration(info, settings->GetLogLevelMask(), this);
+    auto registration = new ConsoleRegistration(settings->GetLogLevelMask(), this);
     connect(registration, &ConsoleRegistration::log, this, [callback](ChiakiLogLevel level, const QString &msg) {
         QJSValue cb = callback;
         if(cb.isCallable())
@@ -501,34 +491,74 @@ bool ConsoleRegistry::registerConsole(const QString &address, const QString &psn
             settings->SetManualHost(manual_host);
         }
     });
+    // une fois terminée (réussie ou non), l'association est détruite dans ce fil-ci
+    connect(registration, &ConsoleRegistration::succeeded, registration, &QObject::deleteLater);
+    connect(registration, &ConsoleRegistration::failed, registration, &QObject::deleteLater);
+    if(!registration->start(info))
+    {
+        qCWarning(logConsoles) << "Association impossible à démarrer avec" << address;
+        delete registration;
+        pending_registration = {};
+        QJSValue cb = callback;
+        if(cb.isCallable())
+            cb.call({tr("[E] The pairing could not start. Check the console address and try again."), false, true});
+        return false;
+    }
     return true;
 }
 
 void ConsoleRegistry::refreshPsnConsoles()
 {
-    if(fetching_psn_consoles)
+    if(psn_consoles_watcher.isRunning())
     {
         qCInfo(logConsoles) << "Consoles du compte PSN : demande déjà en cours";
         return;
     }
-    fetching_psn_consoles = true;
-    psn_consoles_watcher.setFuture(QtConcurrent::run(&ConsoleRegistry::fetchPsnConsoles, this));
+    // la tâche de fond reçoit une copie de ce qu'il lui faut : elle ne touche ni aux
+    // réglages ni aux listes affichées, qui ne sont remplacées qu'à la fin (onPsnConsolesFetched)
+    PsnRequest request;
+    request.token = settings->GetPsnAuthToken();
+    request.log_mask = settings->GetLogLevelMask();
+    for(const auto &host : settings->GetRegisteredHosts())
+        request.registered_nicknames.insert(host.GetServerNickname());
+    request.registered_ps4s = settings->GetPS4RegisteredHostsRegistered();
+    if(request.token.isEmpty())
+        return;
+    psn_consoles_watcher.setFuture(QtConcurrent::run(&ConsoleRegistry::fetchPsnConsoles, request));
+}
+
+void ConsoleRegistry::onPsnConsolesFetched()
+{
+    const PsnConsoles fetched = psn_consoles_watcher.result();
+    if(!fetched.valid)
+        return;
+    psn_hosts = fetched.usable;
+    psn_nickname_hosts = fetched.by_nickname;
+    qCInfo(logConsoles) << "Consoles du compte PSN à jour :" << psn_hosts.size() << "utilisable(s) à distance";
+    emit listChanged();
+}
+
+void ConsoleRegistry::clearPsnConsoles()
+{
+    if(psn_hosts.isEmpty() && psn_nickname_hosts.isEmpty())
+        return;
+    psn_hosts.clear();
+    psn_nickname_hosts.clear();
+    qCInfo(logConsoles) << "Consoles du compte PSN oubliées (compte déconnecté ou changé)";
+    emit listChanged();
 }
 
 // tourne en tâche de fond : la demande à Sony peut prendre plusieurs secondes
-void ConsoleRegistry::fetchPsnConsoles()
+ConsoleRegistry::PsnConsoles ConsoleRegistry::fetchPsnConsoles(PsnRequest request)
 {
-    const QString psn_token = settings->GetPsnAuthToken();
-    if(psn_token.isEmpty())
-        return;
-
+    PsnConsoles out;
     ChiakiHolepunchDeviceInfo *ps5_devices = nullptr;
     size_t ps5_count = 0;
     ChiakiLog log;
-    chiaki_log_init(&log, settings->GetLogLevelMask(), ChiakiLogToJournal, const_cast<QLoggingCategory *>(&logConsoles()));
+    chiaki_log_init(&log, request.log_mask, ChiakiLogToJournal, const_cast<QLoggingCategory *>(&logConsoles()));
     for(int attempt = 1; attempt <= PSN_DEVICES_TRIES; attempt++)
     {
-        const ChiakiErrorCode err = chiaki_holepunch_list_devices(psn_token.toUtf8().constData(), CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5, &ps5_devices, &ps5_count, &log);
+        const ChiakiErrorCode err = chiaki_holepunch_list_devices(request.token.toUtf8().constData(), CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5, &ps5_devices, &ps5_count, &log);
         if(err == CHIAKI_ERR_SUCCESS)
             break;
         qCWarning(logConsoles) << "Consoles PS5 du compte : échec de la demande" << attempt << "/" << PSN_DEVICES_TRIES;
@@ -543,24 +573,22 @@ void ConsoleRegistry::fetchPsnConsoles()
         const QString duid = QByteArray(reinterpret_cast<const char *>(device.device_uid), sizeof(device.device_uid)).toHex();
         const QString name = QString(device.device_name);
         const PsnHost host(duid, name, true);
-        if(!psn_nickname_hosts.contains(name))
-            psn_nickname_hosts.insert(name, host);
-        if(!psn_hosts.contains(duid) && settings->GetNicknameRegisteredHostRegistered(name))
-            psn_hosts.insert(duid, host);
+        out.by_nickname.insert(name, host);
+        if(request.registered_nicknames.contains(name))
+            out.usable.insert(duid, host);
     }
 
     // Sony ne liste pas les PS4 : la PS4 principale du compte a un identifiant fixe
     const QString ps4_duid = QByteArray(32, 'A').toHex();
     const PsnHost ps4_host(ps4_duid, MAIN_PS4_NAME, false);
-    if(!psn_nickname_hosts.contains(MAIN_PS4_NAME))
-        psn_nickname_hosts.insert(MAIN_PS4_NAME, ps4_host);
-    if(!psn_hosts.contains(ps4_duid) && settings->GetPS4RegisteredHostsRegistered() > 0)
-        psn_hosts.insert(ps4_duid, ps4_host);
+    out.by_nickname.insert(MAIN_PS4_NAME, ps4_host);
+    if(request.registered_ps4s > 0)
+        out.usable.insert(ps4_duid, ps4_host);
 
-    qCInfo(logConsoles) << "Consoles du compte PSN à jour :" << psn_hosts.size() << "utilisable(s) à distance";
     if(ps5_devices)
         chiaki_holepunch_free_device_list(&ps5_devices);
-    emit listChanged();
+    out.valid = true;
+    return out;
 }
 
 #include "consoleregistry.moc"

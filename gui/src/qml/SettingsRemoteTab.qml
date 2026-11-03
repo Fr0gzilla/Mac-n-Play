@@ -42,7 +42,7 @@ Item {
             }
             width: Math.min(remoteFlick.width - 80, 1100)
             spacing: 12
-            readonly property bool psnConnected: !!(Chiaki.settings.psnRefreshToken && Chiaki.settings.psnAuthToken && Chiaki.settings.psnAuthTokenExpiry && Chiaki.settings.psnAccountId)
+            readonly property bool psnConnected: Chiaki.psn.connected
 
             SettingSection { text: qsTr("PSN ACCOUNT") }
 
@@ -67,10 +67,7 @@ Item {
                     visible: remoteGrid.psnConnected
                     text: qsTr("Log out")
                     onClicked: {
-                        Chiaki.settings.psnRefreshToken = ""
-                        Chiaki.settings.psnAuthToken = ""
-                        Chiaki.settings.psnAuthTokenExpiry = ""
-                        Chiaki.settings.psnAccountId = ""
+                        Chiaki.psn.logout()
                         openPsnLogin.forceActiveFocus(Qt.TabFocusReason);
                     }
                 }

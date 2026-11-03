@@ -39,6 +39,26 @@ static const QMap<int, QString> &ChiakiButtonSdlNames()
 	return button_map;
 }
 
+// table SDL « GUID,nom,action:bouton,… » → action SDL → boutons physiques
+static QMap<QString, QStringList> ParseSdlMapping(const QString &sdl_mapping)
+{
+	QMap<QString, QStringList> out;
+	QStringList fields = sdl_mapping.split(u',');
+	if(fields.length() < 2)
+		return out;
+	fields.removeFirst();  // GUID
+	fields.removeFirst();  // nom de la manette
+	for(const QString &field : std::as_const(fields))
+	{
+		QStringList parts = field.split(u':');
+		if(parts.length() < 2)
+			continue;
+		const QString key = parts.takeFirst();
+		out.insert(key, out.value(key) + parts);
+	}
+	return out;
+}
+
 // clés de la table SDL qui ne sont pas des boutons (informations sur la manette)
 static bool IsButtonKey(const QString &key)
 {
@@ -138,8 +158,9 @@ void ControllerMappingController::applySavedMappings()
 				SDL_free(original);
 				if(original_mapping.isEmpty())
 				{
+					// on passe à la manette suivante : une seule manette inconnue ne doit pas bloquer les autres
 					qCWarning(logController) << "Table d'origine introuvable pour la manette" << target_guid << ":" << SDL_GetError();
-					return;
+					continue;
 				}
 				original_mappings.insert(target_guid, original_mapping);
 			}
@@ -507,7 +528,8 @@ void ControllerMappingController::apply()
 			new_mapping += "," + it.key() + ":" + physical;
 	}
 	// l'utilisateur est revenu de lui-même à l'affectation d'origine : on l'oublie
-	if(new_mapping == original_mappings.value(guid))
+	// (comparaison bouton par bouton : l'ordre et le format des deux textes diffèrent)
+	if(current_mappings == ParseSdlMapping(original_mappings.value(guid)))
 	{
 		qCInfo(logController) << "Affectation identique à l'origine pour" << controller_type << ": rien à enregistrer";
 		restoreOriginalMapping();

@@ -348,10 +348,12 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     connect(this, &QmlBackend::sessionChanged, connected_controllers, &ConnectedControllers::applyAppActive);
     controller_mapping = new ControllerMappingController(settings, connected_controllers->byDeviceId(), this);
     connected_controllers->setMappingController(controller_mapping);
-    connected_controllers->refresh();
+    // branché avant refresh() : les manettes déjà reliées au lancement reçoivent aussi leur affectation
     connect(connected_controllers, &ConnectedControllers::listChanged, controller_mapping, &ControllerMappingController::applySavedMappings);
+    connected_controllers->refresh();
     psn_account = new PsnAccount(settings, this);
     connect(psn_account, &PsnAccount::tokensReady, consoles, &ConsoleRegistry::refreshPsnConsoles);
+    connect(psn_account, &PsnAccount::accountForgotten, consoles, &ConsoleRegistry::clearPsnConsoles);
     auto_connect_mac = settings->GetAutoConnectHost().GetServerMAC();
     auto_connect_nickname = settings->GetAutoConnectHost().GetServerNickname();
     psn_auto_connect_timer = new QTimer(this);
@@ -586,8 +588,10 @@ void QmlBackend::profileChanged()
 {
     QString profile = settings->GetCurrentProfile();
     Settings *settings_copy = new Settings(profile);
+    // l'ancien profil n'est pas détruit tout de suite : une requête PSN en cours peut encore
+    // s'en servir. Il est libéré à la fermeture de l'appli (enfant de ce contrôleur).
     if(settings_allocd)
-        settings->deleteLater();
+        settings->setParent(this);
     settings_allocd = true;
     settings = settings_copy;
     controller_mapping->setSettings(settings);
@@ -719,6 +723,9 @@ bool QmlBackend::autoConnect() const
 
 void QmlBackend::psnCancel(bool stop_thread)
 {
+    // l'écran d'attente peut demander l'annulation alors que la partie est déjà terminée
+    if (!session)
+        return;
     session->CancelPsnConnection(stop_thread);
 }
 
@@ -1180,7 +1187,8 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
             setConnectState(PsnConnectState::RegisteringConsole);
         else
             setConnectState(PsnConnectState::InitiatingConnection);
-            emit psnConnect(session, session_info.duid, chiaki_target_is_ps5(session_info.target));
+        // dans les deux cas, la connexion par le compte PSN démarre
+        emit psnConnect(session, session_info.duid, chiaki_target_is_ps5(session_info.target));
     }
 }
 
@@ -1276,6 +1284,7 @@ void QmlBackend::connectToHost(int index, QString nickname)
     if (!server.valid)
     {
         qCWarning(logSession) << "Lancement refusé : aucune console à la position" << index;
+        window->setWindowAdjustable(true);
         return;
     }
     qCInfo(logSession) << "Lancement d'une partie sur" << (nickname.isEmpty() ? server.address() : nickname)
@@ -1283,6 +1292,7 @@ void QmlBackend::connectToHost(int index, QString nickname)
                        << (server.registered ? "" : ": console pas encore associée, ouverture de l'assistant");
 
     if (!server.registered) {
+        window->setWindowAdjustable(true);
         consoles->setPendingRegistration(server);
         emit registDialogRequested(server.address(), server.isPS5(), server.duid);
         return;
@@ -1306,6 +1316,8 @@ void QmlBackend::connectToHost(int index, QString nickname)
         if(nickname.isEmpty())
         {
             qCWarning(logSession) << "Connexion annulée : nom de la console inconnu";
+            window->setWindowAdjustable(true);
+            emit error(tr("Can't start the game"), tr("The console is waking up but its name is unknown. Wait a few seconds, then try again."));
             return;
         }
         consoles->markWaking(nickname);
@@ -1387,7 +1399,13 @@ void QmlBackend::connectToHost(int index, QString nickname)
         QString expiry_s = settings->GetPsnAuthTokenExpiry();
         QString refresh = settings->GetPsnRefreshToken();
         if(expiry_s.isEmpty() || refresh.isEmpty())
+        {
+            qCWarning(logSession) << "Partie par Internet impossible : compte PSN non connecté";
+            window->setWindowAdjustable(true);
+            setSessionNotice(QString());
+            emit error(tr("Can't play over the Internet"), tr("Sign in to your PSN account first: Settings › Remote › Log in to PSN."));
             return;
+        }
         QDateTime expiry = QDateTime::fromString(expiry_s, settings->GetTimeFormat());
         // give 1 minute buffer
         QDateTime now = QDateTime::currentDateTime().addSecs(60);

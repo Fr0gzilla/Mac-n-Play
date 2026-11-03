@@ -17,6 +17,7 @@
 #include <QFutureWatcher>
 #include <QJSValue>
 #include <QObject>
+#include <QSet>
 #include <QVariantList>
 
 class Settings;
@@ -88,6 +89,8 @@ public:
     void markWaking(const QString &nickname);
     // redemande au compte PSN ses consoles (en tâche de fond)
     void refreshPsnConsoles();
+    // oublie les consoles du compte (déconnexion ou changement de compte)
+    void clearPsnConsoles();
 
     // console en attente d'association (assistant d'ajout ouvert depuis l'accueil)
     void setPendingRegistration(const ConsoleEntry &entry) { pending_registration = entry; }
@@ -112,7 +115,30 @@ signals:
     void error(const QString &title, const QString &text);
 
 private:
-    void fetchPsnConsoles();
+    // une ligne de l'accueil : ce qui est affiché et la console sur laquelle on agit
+    struct Row
+    {
+        ConsoleEntry entry;
+        QVariantMap view;
+    };
+    QList<Row> rows() const;
+
+    // ce que la tâche de fond reçoit (copie) et ce qu'elle rend
+    struct PsnRequest
+    {
+        QString token;
+        uint32_t log_mask = 0;
+        QSet<QString> registered_nicknames;
+        int registered_ps4s = 0;
+    };
+    struct PsnConsoles
+    {
+        bool valid = false;
+        QMap<QString, PsnHost> usable;
+        QMap<QString, PsnHost> by_nickname;
+    };
+    static PsnConsoles fetchPsnConsoles(PsnRequest request);
+    void onPsnConsolesFetched();
     // nom de la PS4 associée (vide s'il n'y en a pas)
     QString registeredPs4Name() const;
     static bool parseMac(const QString &mac_string, HostMAC *mac);
@@ -124,7 +150,6 @@ private:
     // toutes les consoles du compte PSN, par nom
     QMap<QString, PsnHost> psn_nickname_hosts;
     QList<QString> waking_nicknames;
-    bool fetching_psn_consoles = false;
-    QFutureWatcher<void> psn_consoles_watcher;
+    QFutureWatcher<PsnConsoles> psn_consoles_watcher;
     ConsoleEntry pending_registration;
 };

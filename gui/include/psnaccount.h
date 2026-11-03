@@ -27,18 +27,24 @@ class PsnAccount : public QObject
     Q_OBJECT
     // profil du compte : onlineId, avatar, plus, level, progress, platinum… (vide si non connecté)
     Q_PROPERTY(QVariantMap profile READ profile NOTIFY profileChanged)
+    // un compte PSN complet est enregistré (jetons et identifiant) : les écrans n'ont
+    // pas à lire les jetons eux-mêmes
+    Q_PROPERTY(bool connected READ connected NOTIFY connectedChanged)
 
 public:
     PsnAccount(Settings *settings, QObject *parent = nullptr);
     ~PsnAccount();
 
-    void setSettings(Settings *settings) { this->settings = settings; }
+    void setSettings(Settings *settings);
     QVariantMap profile() const { return current_profile; }
+    bool connected() const;
 
     // renouvelle les jetons avec le jeton de renouvellement enregistré
     void renewTokens();
     // Sony refuse les jetons : on les efface, puis credentialsExpired() demande une reconnexion
     void forgetCredentials();
+    // l'utilisateur se déconnecte : jetons, carte du compte et avatar enregistré sont effacés
+    Q_INVOKABLE void logout();
 
     // adresse de la page de connexion de Sony (avec un identifiant d'appareil neuf)
     Q_INVOKABLE QUrl loginUrl() const;
@@ -60,6 +66,9 @@ public:
 
 signals:
     void profileChanged();
+    void connectedChanged();
+    // le compte n'est plus utilisable (déconnexion, jetons refusés) : oublier ce qui en dépend
+    void accountForgotten();
     void loginSucceeded(const QString &account_id);
     void loginFailed(const QString &error);
     // les jetons ont été refusés par Sony et effacés : il faut se reconnecter
@@ -69,6 +78,7 @@ signals:
 
 private:
     void exchangeCode(const QString &code, const QJSValue &callback);
+    void eraseTokens();
     // la carte du compte (profil et avatar) est enregistrée sur le Mac pour s'afficher hors ligne
     void loadCachedProfile();
     void storeProfile(QVariantMap profile);
