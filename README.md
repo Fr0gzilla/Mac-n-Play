@@ -44,6 +44,17 @@ Mac'n'Play affiche l'écran de votre PlayStation sur votre Mac (Remote Play) et 
 2. Ouvrez-le, puis glissez **Mac'n'Play** dans le dossier **Applications**.
 3. Lancez l'appli depuis Applications.
 
+### Ou avec Homebrew
+
+Si vous utilisez [Homebrew](https://brew.sh) :
+
+```sh
+brew tap fr0gzilla/macnplay https://github.com/Fr0gzilla/Mac-n-Play
+brew install --cask macnplay
+```
+
+Mises à jour : `brew upgrade --cask macnplay`.
+
 ### « Apple n'a pas pu vérifier… » : c'est normal
 
 L'appli est gratuite et n'est pas enregistrée auprès d'Apple (ce qui coûte 99 € par an). Au premier lancement, macOS la bloque. Pour l'autoriser, une seule fois :
@@ -122,6 +133,7 @@ Les étapes complètes sont dans [`.github/workflows/build-macos-arm.yml`](.gith
 ### Install
 
 1. Download `Mac-n-Play-….dmg` from the [releases page](https://github.com/Fr0gzilla/Mac-n-Play/releases/latest), open it and drag **Mac'n'Play** to **Applications**.
+   With Homebrew: `brew tap fr0gzilla/macnplay https://github.com/Fr0gzilla/Mac-n-Play && brew install --cask macnplay`
 2. The app is not notarized by Apple, so macOS blocks the first launch. Try to open it, click **OK**, then go to **System Settings › Privacy & Security** and click **Open Anyway**. Or run:
    ```sh
    xattr -dr com.apple.quarantine "/Applications/Mac'n'Play.app"
