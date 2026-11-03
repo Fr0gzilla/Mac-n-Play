@@ -34,7 +34,7 @@ DialogView {
         if (Chiaki.settings.psnAccountId)
             accountId.text = Chiaki.settings.psnAccountId;
         // déjà une console choisie (bouton « Associer » d'une carte) : on passe directement au compte
-        step = host && host !== "255.255.255.255" ? 1 : 0;
+        step = host && host !== Chiaki.consoles.broadcastAddress ? 1 : 0;
         Qt.callLater(focusStep);
     }
     onStepChanged: Qt.callLater(focusStep)
@@ -52,7 +52,7 @@ DialogView {
 
     onAccepted: {
         const psnId = oldPs4 ? onlineId.text.trim() : accountId.text.trim();
-        const ok = Chiaki.consoles.registerConsole(host.trim(), psnId, pin.text.trim(), cpin.text.trim(), host.trim() === "255.255.255.255", target, function(msg, ok, done) {
+        const ok = Chiaki.consoles.registerConsole(host.trim(), psnId, pin.text.trim(), cpin.text.trim(), target, function(msg, ok, done) {
             if (!done)
                 logArea.text += msg + "\n";
             else {
@@ -268,11 +268,11 @@ DialogView {
                         id: step0First
                         heading: qsTr("Search the whole network for a PS4")
                         detail: qsTr("If your console does not show up, the Mac asks every device on the network.")
-                        onClicked: regist.chooseConsole("255.255.255.255", false)
+                        onClicked: regist.chooseConsole(Chiaki.consoles.broadcastAddress, false)
                     }
                     ChoiceCard {
                         heading: qsTr("Search the whole network for a PS5")
-                        onClicked: regist.chooseConsole("255.255.255.255", true)
+                        onClicked: regist.chooseConsole(Chiaki.consoles.broadcastAddress, true)
                     }
 
                     // adresse à la main (réseau particulier)

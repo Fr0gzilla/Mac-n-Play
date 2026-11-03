@@ -62,9 +62,12 @@ class ConsoleRegistry : public QObject
     Q_PROPERTY(int maxConsoles READ maxConsoles CONSTANT)
     Q_PROPERTY(int registeredCount READ registeredCount NOTIFY listChanged)
     Q_PROPERTY(bool limitReached READ limitReached NOTIFY listChanged)
+    // adresse à donner à registerConsole pour chercher la console sur tout le réseau local
+    Q_PROPERTY(QString broadcastAddress READ broadcastAddress CONSTANT)
 
 public:
     static constexpr int MAX_CONSOLES = MacnPlayRules::MAX_CONSOLES;
+    static constexpr const char *BROADCAST_ADDRESS = "255.255.255.255";
 
     ConsoleRegistry(Settings *settings, QObject *parent = nullptr);
 
@@ -75,6 +78,7 @@ public:
     bool discoveryEnabled() const { return discovery_manager.GetActive(); }
     void setDiscoveryEnabled(bool enabled);
     int maxConsoles() const { return MAX_CONSOLES; }
+    QString broadcastAddress() const { return QString::fromLatin1(BROADCAST_ADDRESS); }
     int registeredCount() const;
     bool limitReached() const { return MacnPlayRules::consoleLimitReached(registeredCount()); }
 
@@ -106,7 +110,7 @@ public:
     Q_INVOKABLE void unhide(const QString &mac);
     // associe une console avec le code PIN affiché sur celle-ci ;
     // la progression passe par callback(message, réussi, fini)
-    Q_INVOKABLE bool registerConsole(const QString &address, const QString &psn_id, const QString &pin, const QString &cpin, bool broadcast, int target, const QJSValue &callback);
+    Q_INVOKABLE bool registerConsole(const QString &address, const QString &psn_id, const QString &pin, const QString &cpin, int target, const QJSValue &callback);
 
 signals:
     void listChanged();

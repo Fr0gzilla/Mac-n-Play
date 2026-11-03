@@ -273,6 +273,18 @@ QList<ConsoleRegistry::Row> ConsoleRegistry::rows() const
         m["registered"] = true;
         out.append(row);
     }
+    // ce que l'accueil a le droit de proposer pour chaque console
+    for(Row &row : out)
+    {
+        const bool discovered = row.view.value("discovered").toBool();
+        const bool registered = row.view.value("registered").toBool();
+        const bool remote = !row.view.value("duid").toString().isEmpty();
+        // associée : code PIN déjà saisi, ou connue par le compte PSN (association automatique)
+        row.view["paired"] = registered || remote;
+        // « Réveiller » : seulement pour une console associée, ajoutée à la main et pas encore vue sur le réseau
+        row.view["canWake"] = registered && !remote && !discovered;
+        row.view["remote"] = remote;
+    }
     return out;
 }
 
@@ -432,8 +444,10 @@ void ConsoleRegistry::unhide(const QString &mac_string)
     emit listChanged();
 }
 
-bool ConsoleRegistry::registerConsole(const QString &address, const QString &psn_id, const QString &pin, const QString &cpin, bool broadcast, int target, const QJSValue &callback)
+bool ConsoleRegistry::registerConsole(const QString &address, const QString &psn_id, const QString &pin, const QString &cpin, int target, const QJSValue &callback)
 {
+    // adresse de diffusion : on cherche la console sur tout le réseau local
+    const bool broadcast = address == QLatin1String(BROADCAST_ADDRESS);
     ChiakiRegistInfo info = {};
     const QByteArray address_bytes = address.toUtf8();
     info.host = address_bytes.constData();

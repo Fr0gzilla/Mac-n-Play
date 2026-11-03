@@ -565,6 +565,9 @@ public:
     // PS4 Pro de la console (adresse MAC) : réglage de l'utilisateur, confirmé ou corrigé
     // automatiquement à la première partie en 1080p
     Q_INVOKABLE bool isPs4Pro(const QString &mac) const;
+    // « 720p · 60 fps » : qualité réglée pour une console (PS4/PS5, en local ou à distance) ;
+    // les écrans s'y abonnent par le signal qualityLabelsChanged
+    Q_INVOKABLE QString qualityLabel(bool ps5, bool remote) const;
     Q_INVOKABLE void setPs4Pro(const QString &mac, bool pro);
     uint dpadTouchShortcut1() const;
     void setDpadTouchShortcut1(uint button);
@@ -625,6 +628,7 @@ public:
 
 signals:
     void ps4ProHostsChanged();
+    void qualityLabelsChanged();
     void resolutionLocalPS4Changed();
     void resolutionRemotePS4Changed();
     void resolutionLocalPS5Changed();

@@ -865,6 +865,16 @@ bool QmlSettings::dpadComboClashesWithMenu(uint a, uint b, uint c, uint d) const
         {settings->GetStreamMenuShortcut1(), settings->GetStreamMenuShortcut2(), settings->GetStreamMenuShortcut3(), settings->GetStreamMenuShortcut4()});
 }
 
+QString QmlSettings::qualityLabel(bool ps5, bool remote) const
+{
+    const int resolution = ps5 ? (remote ? settings->GetResolutionRemotePS5() : settings->GetResolutionLocalPS5())
+                               : (remote ? settings->GetResolutionRemotePS4() : settings->GetResolutionLocalPS4());
+    const int fps = ps5 ? (remote ? settings->GetFPSRemotePS5() : settings->GetFPSLocalPS5())
+                        : (remote ? settings->GetFPSRemotePS4() : settings->GetFPSLocalPS4());
+    static const QMap<int, QString> names = {{1, "360p"}, {2, "540p"}, {3, "720p"}, {4, "1080p"}};
+    return names.value(resolution) + " · " + QString::number(fps) + " " + tr("fps");
+}
+
 bool QmlSettings::isPs4Pro(const QString &mac) const
 {
     return settings->GetPs4Pro(mac);

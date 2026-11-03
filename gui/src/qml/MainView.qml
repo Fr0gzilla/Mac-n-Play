@@ -177,16 +177,14 @@ Pane {
             scale: hovered ? 1.008 : 1.0
             Behavior on scale { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
             readonly property bool ready: modelData.state == "ready"
-            readonly property bool paired: modelData.registered || !!modelData.duid
+            readonly property bool paired: modelData.paired
             // repères de boutons (✕, L1, △, □) : seulement sous la souris, ou sur la carte choisie à la manette
             readonly property bool showBadges: consolePane.padMode ? highlighted : hovered
             // qualité choisie dans les réglages pour cette console (en local ou à distance)
-            readonly property string quality: {
-                const st = Chiaki.settings;
-                const remote = !!modelData.duid;
-                const res = modelData.ps5 ? (remote ? st.resolutionRemotePS5 : st.resolutionLocalPS5) : (remote ? st.resolutionRemotePS4 : st.resolutionLocalPS4);
-                const fps = modelData.ps5 ? (remote ? st.fpsRemotePS5 : st.fpsLocalPS5) : (remote ? st.fpsRemotePS4 : st.fpsLocalPS4);
-                return (({ 1: "360p", 2: "540p", 3: "720p", 4: "1080p" })[res] || "") + " · " + fps + " " + qsTr("fps");
+            property string quality: Chiaki.settings.qualityLabel(modelData.ps5, modelData.remote)
+            Connections {
+                target: Chiaki.settings
+                function onQualityLabelsChanged() { delegate.quality = Chiaki.settings.qualityLabel(modelData.ps5, modelData.remote); }
             }
             background: Rectangle {
                 radius: 30
@@ -240,7 +238,7 @@ Pane {
             function wakeUpHost() {
                 if (modelData.demo)
                     return root.showInfoDialog(qsTr("Demo console"), qsTr("This PS5 is only a demonstration, to preview the home screen with two consoles."));
-                if(!modelData.discovered && !modelData.duid)
+                if(modelData.canWake)
                     Chiaki.consoles.wakeUp(index);
             }
 
@@ -420,7 +418,7 @@ Pane {
                         topPadding: 9
                         bottomPadding: 9
                         badge: delegate.showBadges ? root.controllerButton("pyramid") : ""
-                        visible: modelData.registered && !modelData.duid && !modelData.discovered
+                        visible: modelData.canWake
                         focusPolicy: Qt.NoFocus
                         onClicked: delegate.wakeUpHost()
                     }

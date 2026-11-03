@@ -350,28 +350,13 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     psn_account = new PsnAccount(settings, this);
     connect(psn_account, &PsnAccount::tokensReady, consoles, &ConsoleRegistry::refreshPsnConsoles);
     connect(psn_account, &PsnAccount::accountForgotten, consoles, &ConsoleRegistry::clearPsnConsoles);
-    auto_connect_mac = settings->GetAutoConnectHost().GetServerMAC();
-    auto_connect_nickname = settings->GetAutoConnectHost().GetServerNickname();
     psn_auto_connect_timer = new QTimer(this);
     psn_auto_connect_timer->setSingleShot(true);
     psn_reconnect_tries = 0;
     psn_reconnect_timer = new QTimer(this);
     wakeup_start_timer = new QTimer(this);
     wakeup_start_timer->setSingleShot(true);
-    if(autoConnect() && !auto_connect_nickname.isEmpty())
-    {
-        connect(psn_auto_connect_timer, &QTimer::timeout, this, [this]
-        {
-            const int index = consoles->psnConsoleIndex(auto_connect_nickname);
-            if(index >= 0)
-            {
-                connectToHost(index);
-                return;
-            }
-            qCWarning(logSession) << "Connexion auto : la console" << auto_connect_nickname << "n'est pas dans le compte PSN";
-        });
-        psn_auto_connect_timer->start(PSN_INTERNET_WAIT_SECONDS * 1000);
-    }
+    setupAutoConnect();
     connect(psn_reconnect_timer, &QTimer::timeout, this, &QmlBackend::retryPsnAfterOutage);
     connect(wakeup_start_timer, &QTimer::timeout, this, [this]
     {
@@ -559,45 +544,10 @@ void QmlBackend::profileChanged()
     window->setSettings(settings);
     consoles->setDiscoveryEnabled(true);
 
-    auto_connect_mac = settings->GetAutoConnectHost().GetServerMAC();
-    auto_connect_nickname = settings->GetAutoConnectHost().GetServerNickname();
-    psn_reconnect_timer->deleteLater();
-    psn_auto_connect_timer->deleteLater();
-    psn_auto_connect_timer = new QTimer(this);
-    psn_auto_connect_timer->setSingleShot(true);
+    // la reconnexion en cours concernait l'ancien profil ; la connexion automatique suit le nouveau
+    psn_reconnect_timer->stop();
     psn_reconnect_tries = 0;
-    psn_reconnect_timer = new QTimer(this);
-    if(autoConnect() && !auto_connect_nickname.isEmpty())
-    {
-        connect(psn_auto_connect_timer, &QTimer::timeout, this, [this]
-        {
-            const int index = consoles->psnConsoleIndex(auto_connect_nickname);
-            if(index >= 0)
-            {
-                connectToHost(index);
-                return;
-            }
-            qCWarning(logSession) << "Connexion auto : la console" << auto_connect_nickname << "n'est pas dans le compte PSN";
-        });
-        psn_auto_connect_timer->start(PSN_INTERNET_WAIT_SECONDS * 1000);
-    }
-    connect(psn_reconnect_timer, &QTimer::timeout, this, &QmlBackend::retryPsnAfterOutage);
-    sleep_inhibit->deleteLater();
-    sleep_inhibit = new SystemdInhibit(QGuiApplication::applicationName(), tr("Remote Play session"), "sleep", "delay", this);
-    connect(sleep_inhibit, &SystemdInhibit::sleep, this, &QmlBackend::goToSleep);
-    connect(sleep_inhibit, &SystemdInhibit::resume, this, &QmlBackend::resumeFromSleep);
-    connect(ControllerManager::GetInstance(), &ControllerManager::ControllerMoved, sleep_inhibit, &SystemdInhibit::simulateUserActivity);
-#ifdef Q_OS_MACOS
-    mac_wake_sleep->deleteLater();
-    mac_wake_sleep = new MacWakeSleep(this);
-    connect(mac_wake_sleep, &MacWakeSleep::wokeUp, this, &QmlBackend::resumeFromSleep);
-    connect(ControllerManager::GetInstance(), &ControllerManager::ControllerMoved, mac_wake_sleep, &MacWakeSleep::simulateUserActivity);
-#elif defined(Q_OS_WINDOWS)
-    windows_wake_sleep->deleteLater();
-    windows_wake_sleep = new WindowsWakeSleep(this);
-    connect(windows_wake_sleep, &WindowsWakeSleep::wokeUp, this, &QmlBackend::resumeFromSleep);
-    connect(windows_wake_sleep, &WindowsWakeSleep::sleeping, this, &QmlBackend::goToSleep);
-#endif
+    setupAutoConnect();
     psn_account->refresh();
 }
 
@@ -1403,6 +1353,29 @@ void QmlBackend::discardSession()
     detachSessionLog();
     session->deleteLater();
     session = nullptr;
+}
+
+// connexion automatique (réglage) : d'abord sur le réseau local (updateDiscoveryHosts) ;
+// si la console n'y apparaît pas à temps, par le compte PSN
+void QmlBackend::setupAutoConnect()
+{
+    auto_connect_mac = settings->GetAutoConnectHost().GetServerMAC();
+    auto_connect_nickname = settings->GetAutoConnectHost().GetServerNickname();
+    psn_auto_connect_timer->stop();
+    psn_auto_connect_timer->disconnect();
+    if(!autoConnect() || auto_connect_nickname.isEmpty())
+        return;
+    connect(psn_auto_connect_timer, &QTimer::timeout, this, [this]
+    {
+        const int index = consoles->psnConsoleIndex(auto_connect_nickname);
+        if(index >= 0)
+        {
+            connectToHost(index);
+            return;
+        }
+        qCWarning(logSession) << "Connexion auto : la console" << auto_connect_nickname << "n'est pas dans le compte PSN";
+    });
+    psn_auto_connect_timer->start(PSN_INTERNET_WAIT_SECONDS * 1000);
 }
 
 void QmlBackend::setSessionNotice(const QString &notice)

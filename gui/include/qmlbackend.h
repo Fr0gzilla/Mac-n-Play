@@ -226,6 +226,7 @@ private:
     QString session_notice;
     void setSessionNotice(const QString &notice);
     void retryPsnAfterOutage();
+    void setupAutoConnect();
     void detachSessionLog();
     void discardSession();
     // relance la partie dans un autre préréglage ; remember = l'enregistrer comme choix de l'utilisateur

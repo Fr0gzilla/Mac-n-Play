@@ -140,7 +140,7 @@ Item {
                 rightPadding: 34
                 firstInFocusChain: true
                 text: "+  " + qsTr("Register New")
-                onClicked: root.showRegistDialog("255.255.255.255", true)
+                onClicked: root.showRegistDialog(Chiaki.consoles.broadcastAddress, true)
             }
 
             Label {
