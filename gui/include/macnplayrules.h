@@ -170,5 +170,14 @@ namespace MacnPlayRules
             return registered_ps4_name;
         return psn_name;
     }
+
+    // inverse de la règle précédente : la connexion automatique retient le vrai nom de la PS4,
+    // qu'il faut traduire en « Main PS4 Console » pour la retrouver dans le compte PSN
+    inline std::string psnNameOfConsole(const std::string &nickname, const std::string &registered_ps4_name)
+    {
+        if(!nickname.empty() && nickname == registered_ps4_name)
+            return "Main PS4 Console";
+        return nickname;
+    }
 }
 

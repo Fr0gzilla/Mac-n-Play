@@ -116,6 +116,13 @@ private slots:
         QCOMPARE(consoleDisplayName("Main PS4 Console", ""), std::string("Main PS4 Console"));
         QCOMPARE(consoleDisplayName("PS5-Salon", "PS4-955"), std::string("PS5-Salon"));
     }
+
+    void nomPsnDeLaConsoleRetenue()
+    {
+        QCOMPARE(psnNameOfConsole("PS4-955", "PS4-955"), std::string("Main PS4 Console"));
+        QCOMPARE(psnNameOfConsole("PS5-Salon", "PS4-955"), std::string("PS5-Salon"));
+        QCOMPARE(psnNameOfConsole("", ""), std::string(""));  // aucune console retenue
+    }
 };
 
 QTEST_APPLESS_MAIN(RulesTest)

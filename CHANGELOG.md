@@ -6,6 +6,7 @@
 - Journal de l'appli anonymisé dès l'écriture quand le réglage « Masquer les adresses » est coché.
 - « Tester ma connexion » mesure le temps de réponse sur une connexion déjà ouverte (moins de « lent » à tort).
 - Plusieurs pré-versions de suite (beta.1, beta.2) correctement comparées pour les nouvelles versions.
+- Connexion automatique par Internet : la PS4 retenue est retrouvée dans le compte PSN, où Sony l'appelle « Main PS4 Console ».
 - Outils pour contribuer : vérification des traductions, mise en forme du code (`.clang-format`).
 
 ## 1.1.0-beta — 3 novembre 2026 (pré-version)
