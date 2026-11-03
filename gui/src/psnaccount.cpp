@@ -42,6 +42,9 @@ private:
 };
 #endif
 
+// le profil (statut en ligne, trophées, jeu en cours) est relu régulièrement
+static const int PROFILE_REFRESH_MS = 5 * 60 * 1000;
+
 // adresse du profil PSN : pseudo, avatar, PS Plus, trophées et activité en cours
 static const char *PROFILE_URL = "https://us-prof.np.community.playstation.net/userProfile/v1/users/me/profile2"
     "?fields=onlineId,avatarUrls,plus,trophySummary(@default,level,progress,earnedTrophies),presences(@titleInfo)&avatarSizes=xl";
@@ -50,6 +53,9 @@ PsnAccount::PsnAccount(Settings *settings, QObject *parent)
     : QObject(parent), settings(settings)
 {
     connect(this, &PsnAccount::tokensReady, this, &PsnAccount::fetchProfile);
+    // refresh() renouvelle les jetons s'ils expirent, puis relit le profil
+    connect(&profile_timer, &QTimer::timeout, this, &PsnAccount::refresh);
+    profile_timer.start(PROFILE_REFRESH_MS);
 }
 
 PsnAccount::~PsnAccount()

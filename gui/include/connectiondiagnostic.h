@@ -1,0 +1,49 @@
+// Diagnostic « Tester ma connexion » (Paramètres › Configuration).
+//
+// Rôle unique : vérifier, étape par étape, ce dont une partie a besoin, et le dire en clair :
+// le réseau du Mac, l'accès à Internet, le compte PSN et la présence de la console sur ce réseau.
+// Il ne modifie rien : il observe et explique.
+#pragma once
+
+#include <QElapsedTimer>
+#include <QObject>
+#include <QVariantList>
+
+class QNetworkAccessManager;
+class ConsoleRegistry;
+class Settings;
+
+class ConnectionDiagnostic : public QObject
+{
+    Q_OBJECT
+    Q_PROPERTY(bool running READ running NOTIFY changed)
+    // une ligne par vérification : { title, status ("ok" | "warning" | "error"), detail }
+    Q_PROPERTY(QVariantList results READ results NOTIFY changed)
+
+public:
+    ConnectionDiagnostic(Settings *settings, ConsoleRegistry *consoles, QObject *parent = nullptr);
+    void setSettings(Settings *settings) { this->settings = settings; }
+
+    bool running() const { return is_running; }
+    QVariantList results() const { return check_results; }
+
+    Q_INVOKABLE void start();
+
+signals:
+    void changed();
+
+private:
+    void checkLocalNetwork();
+    void checkInternet();
+    void checkPsnAccount();
+    void checkConsole();
+    void add(const QString &title, const QString &status, const QString &detail);
+    void finish();
+
+    Settings *settings;
+    ConsoleRegistry *consoles;
+    QNetworkAccessManager *network;
+    QElapsedTimer internet_timer;
+    bool is_running = false;
+    QVariantList check_results;
+};

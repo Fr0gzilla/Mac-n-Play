@@ -1,4 +1,3 @@
-// Bouton rond en verre (barre du haut).
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.Material

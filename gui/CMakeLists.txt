@@ -55,6 +55,12 @@ set(SOURCE_FILES
 	include/psnaccount.h
 	src/psnaccount.cpp
 	include/macnplayrules.h
+	include/connectiondiagnostic.h
+	src/connectiondiagnostic.cpp
+	include/remotequalityguard.h
+	src/remotequalityguard.cpp
+	include/updatechecker.h
+	src/updatechecker.cpp
 	include/singleinstance.h
 	src/singleinstance.cpp
 	include/appjournal.h

@@ -113,6 +113,8 @@ signals:
 
 private:
     void fetchPsnConsoles();
+    // nom de la PS4 associée (vide s'il n'y en a pas)
+    QString registeredPs4Name() const;
     static bool parseMac(const QString &mac_string, HostMAC *mac);
 
     Settings *settings = nullptr;

@@ -175,7 +175,7 @@ Item {
                     topMargin: 30
                 }
                 // pendant le chargement, plus de rappel des combinaisons : seulement l'avertissement du son coupé
-                text: Chiaki.settings.audioVideoDisabled == 0x01 ? qsTr("Audio Disabled in settings") : ""
+                text: Chiaki.settings.audioVideoDisabled == 0x01 ? qsTr("Audio Disabled in settings") : Chiaki.sessionNotice
                 visible: sessionLoading
             }
 
@@ -230,39 +230,92 @@ Item {
         }
     }
 
-    ColumnLayout {
+    // message bref pendant la partie (qualité adaptée à la connexion, connexion faible…)
+    Rectangle {
+        id: noticeToast
+        anchors {
+            top: parent.top
+            horizontalCenter: parent.horizontalCenter
+            topMargin: 32
+        }
+        width: noticeLabel.implicitWidth + 48
+        height: noticeLabel.implicitHeight + 24
+        radius: height / 2
+        color: Qt.rgba(0.02, 0.05, 0.14, 0.85)
+        border.width: 1
+        border.color: Qt.rgba(0.6, 0.75, 1, 0.3)
+        // le message arrive souvent pendant le chargement : on le montre quand l'image apparaît
+        readonly property bool loadingDone: !sessionLoading
+        onLoadingDoneChanged: if (loadingDone && Chiaki.sessionNotice) noticeTimer.restart()
+        opacity: noticeTimer.running && !sessionLoading ? 1.0 : 0.0
+        visible: opacity
+        Behavior on opacity { NumberAnimation { duration: 300 } }
+        Label {
+            id: noticeLabel
+            anchors.centerIn: parent
+            text: Chiaki.sessionNotice
+            font.pixelSize: 16
+        }
+        Timer {
+            id: noticeTimer
+            interval: 6000
+        }
+        Connections {
+            target: Chiaki
+            function onSessionNoticeChanged() {
+                if (Chiaki.sessionNotice)
+                    noticeTimer.restart();
+            }
+        }
+    }
+
+    // la console affiche un contenu interdit en lecture à distance (appli vidéo, Blu-ray…) :
+    // un bandeau qui laisse passer la manette, pour que le bouton PS ramène la console à son accueil
+    Rectangle {
         id: cantDisplayMessage
         anchors.centerIn: parent
+        width: Math.min(parent.width - 80, cantDisplayColumn.implicitWidth + 80)
+        height: cantDisplayColumn.implicitHeight + 56
+        radius: 24
+        color: Qt.rgba(0.02, 0.05, 0.14, 0.92)
+        border.width: 1
+        border.color: Qt.rgba(0.6, 0.75, 1, 0.3)
         opacity: Chiaki.window.hasVideo && Chiaki.session && Chiaki.session.cantDisplay ? 1.0 : 0.0
         visible: opacity
-        spacing: 30
 
         Behavior on opacity { NumberAnimation { duration: 250 } }
 
-        onVisibleChanged: {
-            if (visible) {
-                menuController.close();
-                view.grabInput(goToHomeButton);
-            } else {
-                view.releaseInput();
+        onVisibleChanged: if (visible) menuController.close()
+
+        ColumnLayout {
+            id: cantDisplayColumn
+            anchors.centerIn: parent
+            width: Math.min(implicitWidth, cantDisplayMessage.parent.width - 160)
+            spacing: 18
+
+            Label {
+                Layout.fillWidth: true
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.WordWrap
+                font.pixelSize: 22
+                font.weight: Font.Medium
+                text: qsTr("The screen contains content that can't be displayed using Remote Play.")
             }
-        }
-
-        Label {
-            Layout.alignment: Qt.AlignCenter
-            text: qsTr("The screen contains content that can't be displayed using Remote Play.")
-        }
-
-        Button {
-            id: goToHomeButton
-            Layout.alignment: Qt.AlignCenter
-            Layout.preferredHeight: 60
-            text: qsTr("Go to Home Screen")
-            Material.background: activeFocus ? parent.Material.accent : undefined
-            Material.roundedScale: Material.SmallScale
-            onClicked: Chiaki.sessionGoHome()
-            Keys.onReturnPressed: clicked()
-            Keys.onEscapePressed: clicked()
+            Label {
+                Layout.fillWidth: true
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.WordWrap
+                font.pixelSize: 16
+                opacity: 0.7
+                text: qsTr("A video app (YouTube, Netflix…) or a disc is open on the console. Press the PS button to go back to the console's home screen, then close the app.")
+            }
+            C.Button {
+                id: goToHomeButton
+                Layout.alignment: Qt.AlignCenter
+                text: qsTr("Go to Home Screen")
+                onClicked: Chiaki.sessionGoHome()
+                Material.roundedScale: Material.SmallScale
+            }
         }
     }
 

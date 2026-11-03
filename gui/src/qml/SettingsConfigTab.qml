@@ -101,6 +101,48 @@ Item {
                 onToggled: Chiaki.settings.logVerbose = checked
             }
 
+            // diagnostic : vérifie le réseau, Internet, le compte PSN et la console, et l'explique
+            Label {
+                Layout.topMargin: 10
+                text: qsTr("Can't connect? Test what a game needs, step by step.")
+                opacity: 0.6
+            }
+            C.Button {
+                text: Chiaki.diagnostic.running ? qsTr("Testing…") : qsTr("Test my connection")
+                enabled: !Chiaki.diagnostic.running
+                onClicked: Chiaki.diagnostic.start()
+                Material.roundedScale: Material.SmallScale
+            }
+            Repeater {
+                model: Chiaki.diagnostic.results
+                delegate: RowLayout {
+                    required property var modelData
+                    Layout.maximumWidth: 760
+                    spacing: 12
+                    Label {
+                        Layout.alignment: Qt.AlignTop
+                        text: modelData.status === "ok" ? "✓" : (modelData.status === "warning" ? "!" : "✕")
+                        color: modelData.status === "ok" ? "#4ade80" : (modelData.status === "warning" ? "#fbbf24" : "#f87171")
+                        font.pixelSize: 18
+                        font.weight: Font.Bold
+                    }
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 2
+                        Label {
+                            text: modelData.title
+                            font.weight: Font.DemiBold
+                        }
+                        Label {
+                            Layout.fillWidth: true
+                            text: modelData.detail
+                            wrapMode: Text.WordWrap
+                            opacity: 0.75
+                        }
+                    }
+                }
+            }
+
             // journal de l'appli : à joindre à un ticket quand quelque chose ne marche pas
             Label {
                 Layout.topMargin: 10

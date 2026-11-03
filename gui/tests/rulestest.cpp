@@ -48,6 +48,54 @@ private slots:
         QVERIFY(tokenNeedsRenewal(expiry - 30, expiry));     // moins d'une minute : on renouvelle
         QVERIFY(tokenNeedsRenewal(expiry + 1, expiry));      // déjà expiré
     }
+
+    void lectureDesNumerosDeVersion()
+    {
+        QCOMPARE(parseVersion("v1.2.3"), std::vector<int>({1, 2, 3}));
+        QCOMPARE(parseVersion("1.0.111"), std::vector<int>({1, 0, 111}));
+        QVERIFY(parseVersion("dev-b565efe").empty());
+        QVERIFY(parseVersion("1..2").empty());
+        QVERIFY(parseVersion("").empty());
+    }
+
+    void nouvelleVersionDisponible()
+    {
+        QVERIFY(versionIsNewer("v1.1.0", "1.0.0"));
+        QVERIFY(versionIsNewer("v1.0.10", "1.0.9"));      // 10 > 9 : on compare des nombres, pas du texte
+        QVERIFY(!versionIsNewer("v1.0.0", "1.0.0"));
+        QVERIFY(!versionIsNewer("v1.0.0", "1.1.2"));
+        QVERIFY(versionIsNewer("v1.1", "1.0.5"));          // nombre de parties différent
+        QVERIFY(!versionIsNewer("v1.1.0", "dev-b565efe"));  // fabrication de test : jamais signalée
+    }
+
+    void reconnaissanceDuPartageDeConnexion()
+    {
+        QVERIFY(isPhoneHotspotAddress(0xAC140A02u));   // 172.20.10.2 (iPhone)
+        QVERIFY(isPhoneHotspotAddress(0xC0A82B05u));   // 192.168.43.5 (Android)
+        QVERIFY(!isPhoneHotspotAddress(0xC0A8013Cu));  // 192.168.1.60 (box)
+        QVERIFY(!isPhoneHotspotAddress(0xAC140A10u));  // 172.20.10.16 : hors de la plage iPhone
+    }
+
+    void qualiteDeDepartADistance()
+    {
+        QCOMPARE(remoteStartPreset(true, PRESET_720P), PRESET_360P);   // téléphone : léger
+        QCOMPARE(remoteStartPreset(false, PRESET_720P), PRESET_540P);  // autre réseau : moyen
+        QCOMPARE(remoteStartPreset(false, PRESET_360P), PRESET_360P);  // jamais au-dessus du choix
+    }
+
+    void baisseDeQualiteSurPertes()
+    {
+        QCOMPARE(presetAfterLosses(PRESET_720P, 3), PRESET_720P);   // pertes trop brèves : on garde
+        QCOMPARE(presetAfterLosses(PRESET_720P, 12), PRESET_540P);  // pertes durables : un cran de moins
+        QCOMPARE(presetAfterLosses(PRESET_360P, 60), PRESET_360P);  // déjà au minimum
+    }
+
+    void nomAfficheDeLaConsole()
+    {
+        QCOMPARE(consoleDisplayName("Main PS4 Console", "PS4-955"), std::string("PS4-955"));
+        QCOMPARE(consoleDisplayName("Main PS4 Console", ""), std::string("Main PS4 Console"));
+        QCOMPARE(consoleDisplayName("PS5-Salon", "PS4-955"), std::string("PS5-Salon"));
+    }
 };
 
 QTEST_APPLESS_MAIN(RulesTest)

@@ -201,7 +201,8 @@ QVariantList ConsoleRegistry::list() const
         m["discovered"] = false;
         m["manual"] = false;
         m["display"] = true;
-        m["name"] = host.GetName();
+        // « Main PS4 Console » pour Sony : on affiche le nom de la PS4 associée
+        m["name"] = QString::fromStdString(MacnPlayRules::consoleDisplayName(host.GetName().toStdString(), registeredPs4Name().toStdString()));
         m["duid"] = host.GetDuid();
         m["address"] = "";
         m["registered"] = true;
@@ -309,6 +310,16 @@ ConsoleEntry ConsoleRegistry::consoleAt(int index) const
         psn_index++;
     }
     return {};
+}
+
+QString ConsoleRegistry::registeredPs4Name() const
+{
+    for(const auto &host : settings->GetRegisteredHosts())
+    {
+        if(!chiaki_target_is_ps5(host.GetTarget()))
+            return host.GetServerNickname();
+    }
+    return QString();
 }
 
 int ConsoleRegistry::psnConsoleIndex(const QString &nickname) const

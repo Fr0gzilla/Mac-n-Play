@@ -547,8 +547,45 @@ Pane {
             bottom: parent.bottom
             margins: 24
         }
+        visible: !Chiaki.updates.available
         text: "Mac'n'Play " + Qt.application.version
         opacity: 0.45
         font.pixelSize: 15
+    }
+
+    // nouvelle version publiée sur GitHub : l'utilisateur choisit de la télécharger ou non
+    Rectangle {
+        id: updateBanner
+        visible: Chiaki.updates.available
+        anchors {
+            right: parent.right
+            bottom: parent.bottom
+            margins: 20
+        }
+        width: updateRow.implicitWidth + 32
+        height: 68
+        radius: 34
+        color: Qt.rgba(0.25, 0.5, 1, 0.16)
+        border.width: 1
+        border.color: Qt.rgba(0.6, 0.78, 1, 0.45)
+        RowLayout {
+            id: updateRow
+            anchors.centerIn: parent
+            spacing: 14
+            Label {
+                text: qsTr("Mac'n'Play %1 is available").arg(Chiaki.updates.latestVersion)
+                font.pixelSize: 15
+                font.weight: Font.Medium
+            }
+            C.GlassButton {
+                primary: true
+                text: qsTr("Download")
+                onClicked: Qt.openUrlExternally(Chiaki.updates.pageUrl)
+            }
+            C.GlassButton {
+                text: qsTr("Later")
+                onClicked: Chiaki.updates.dismiss()
+            }
+        }
     }
 }

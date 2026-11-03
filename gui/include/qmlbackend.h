@@ -9,6 +9,8 @@
 //   - Chiaki.controllerMapping → ControllerMappingController (attribution des boutons)
 //   - Chiaki.settings          → QmlSettings (réglages)
 //   - Chiaki.journal           → JournalController (journal de l'appli)
+//   - Chiaki.updates           → UpdateChecker (nouvelles versions publiées)
+//   - Chiaki.diagnostic        → ConnectionDiagnostic (« Tester ma connexion »)
 // Le moteur de la partie (réseau, vidéo, son) est StreamSession, hérité de chiaki-ng.
 #pragma once
 
@@ -22,6 +24,9 @@
 #include "consoleregistry.h"
 #include "connectedcontrollers.h"
 #include "appjournal.h"
+#include "updatechecker.h"
+#include "remotequalityguard.h"
+#include "connectiondiagnostic.h"
 
 #include <QObject>
 #include <QMutex>
@@ -65,6 +70,10 @@ class QmlBackend : public QObject
     Q_PROPERTY(PsnAccount* psn READ psnAccount CONSTANT)
     Q_PROPERTY(ConsoleRegistry* consoles READ consoleRegistry CONSTANT)
     Q_PROPERTY(JournalController* journal READ journalController CONSTANT)
+    Q_PROPERTY(UpdateChecker* updates READ updateChecker CONSTANT)
+    Q_PROPERTY(ConnectionDiagnostic* diagnostic READ connectionDiagnostic CONSTANT)
+    // message sur la partie en cours (« Partie par Internet… », « Connexion faible… »), vide sinon
+    Q_PROPERTY(QString sessionNotice READ sessionNotice NOTIFY sessionNoticeChanged)
     Q_PROPERTY(bool autoConnect READ autoConnect NOTIFY autoConnectChanged)
     Q_PROPERTY(PsnConnectState connectState READ connectState WRITE setConnectState NOTIFY connectStateChanged)
     Q_PROPERTY(ControllerMappingController* controllerMapping READ controllerMappingController CONSTANT)
@@ -94,6 +103,9 @@ public:
     PsnAccount *psnAccount() const { return psn_account; }
     ConsoleRegistry *consoleRegistry() const { return consoles; }
     JournalController *journalController() const { return journal; }
+    UpdateChecker *updateChecker() const { return updates; }
+    ConnectionDiagnostic *connectionDiagnostic() const { return diagnostic; }
+    QString sessionNotice() const { return session_notice; }
     StreamSession *qmlSession() const;
     QList<QmlController*> qmlControllers() const;
 
@@ -151,6 +163,7 @@ public:
 
 signals:
     void sessionChanged(StreamSession *session);
+    void sessionNoticeChanged();
     void psnConnect(StreamSession *session, const QString &duid, const bool &ps5);
     void showPsnView();
     void connectStateChanged();
@@ -207,6 +220,13 @@ private:
     PsnAccount *psn_account = {};
     ConsoleRegistry *consoles = {};
     JournalController *journal = {};
+    UpdateChecker *updates = {};
+    RemoteQualityGuard *remote_quality = {};
+    ConnectionDiagnostic *diagnostic = {};
+    QString session_notice;
+    void setSessionNotice(const QString &notice);
+    // relance la partie dans un autre préréglage ; remember = l'enregistrer comme choix de l'utilisateur
+    void restartSession(int preset, bool remember);
     ConnectedControllers *connected_controllers = {};
     bool disable_zero_copy = false;
     QMutex hw_transfer_state_mutex;

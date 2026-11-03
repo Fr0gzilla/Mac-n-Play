@@ -10,6 +10,7 @@
 #pragma once
 
 #include <QObject>
+#include <QTimer>
 #include <QJSValue>
 #include <QUrl>
 #include <QVariantMap>
@@ -70,6 +71,7 @@ private:
 
     Settings *settings;
     QVariantMap current_profile;
+    QTimer profile_timer;
 #ifdef CHIAKI_HAVE_WEBENGINE
     SecUaRequestInterceptor *request_interceptor = nullptr;
 #endif

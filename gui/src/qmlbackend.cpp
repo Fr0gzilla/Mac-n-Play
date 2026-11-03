@@ -259,6 +259,24 @@ static void msg_handler(QtMsgType type, const QMessageLogContext &context, const
     chiaki_log(chiaki_log_ctx, chiaki_level, "%s", qPrintable(msg));
 }
 
+// préréglage de la bibliothèque (1 = 360p … 4 = 1080p) d'après la hauteur de l'image
+static int PresetFromHeight(unsigned int height)
+{
+    if (height >= 1080) return CHIAKI_VIDEO_RESOLUTION_PRESET_1080p;
+    if (height >= 720) return CHIAKI_VIDEO_RESOLUTION_PRESET_720p;
+    if (height >= 540) return CHIAKI_VIDEO_RESOLUTION_PRESET_540p;
+    return CHIAKI_VIDEO_RESOLUTION_PRESET_360p;
+}
+
+// change la définition d'un profil vidéo en gardant sa fluidité et son format
+static void ApplyPreset(ChiakiConnectVideoProfile &profile, int preset)
+{
+    const ChiakiCodec codec = profile.codec;
+    const auto fps = profile.max_fps >= 60 ? CHIAKI_VIDEO_FPS_PRESET_60 : CHIAKI_VIDEO_FPS_PRESET_30;
+    chiaki_connect_video_profile_preset(&profile, static_cast<ChiakiVideoResolutionPreset>(preset), fps);
+    profile.codec = codec;
+}
+
 QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     : QObject(window)
     , settings(settings)
@@ -277,6 +295,14 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     qmlRegisterUncreatableType<ConsoleRegistry>(uri, 1, 0, "ConsoleRegistry", {});
     qmlRegisterUncreatableType<JournalController>(uri, 1, 0, "JournalController", {});
     journal = new JournalController(this);
+    qmlRegisterUncreatableType<UpdateChecker>(uri, 1, 0, "UpdateChecker", {});
+    updates = new UpdateChecker(this);
+    remote_quality = new RemoteQualityGuard(this);
+    qmlRegisterUncreatableType<ConnectionDiagnostic>(uri, 1, 0, "ConnectionDiagnostic", {});
+    connect(remote_quality, &RemoteQualityGuard::lowerRequested, this, [this](int preset) {
+        setSessionNotice(tr("Weak connection: quality lowered to %1").arg(RemoteQualityGuard::presetName(preset)));
+        restartSession(preset, false);
+    });
     qmlRegisterUncreatableType<StreamSession>(uri, 1, 0, "ChiakiSession", {});
 
     QObject *frame_obj = new QObject();
@@ -312,6 +338,10 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
         connect(settings_qml, changed, connected_controllers, &ConnectedControllers::applyStreamMenuShortcut);
     connect(settings, &Settings::CurrentProfileChanged, this, &QmlBackend::profileChanged);
     consoles = new ConsoleRegistry(settings, this);
+    diagnostic = new ConnectionDiagnostic(settings, consoles, this);
+    // MACNPLAY_DIAGNOSTIC=1 : lance le diagnostic au démarrage (résultat dans le journal)
+    if (qEnvironmentVariableIsSet("MACNPLAY_DIAGNOSTIC"))
+        QTimer::singleShot(4000, diagnostic, &ConnectionDiagnostic::start);
     connect(consoles, &ConsoleRegistry::discoveredHostsUpdated, this, &QmlBackend::updateDiscoveryHosts);
     connect(consoles, &ConsoleRegistry::error, this, &QmlBackend::error);
     connect(settings_qml, &QmlSettings::allowJoystickBackgroundEventsChanged, connected_controllers, &ConnectedControllers::applyBackgroundEvents);
@@ -564,6 +594,7 @@ void QmlBackend::profileChanged()
     connected_controllers->setSettings(settings);
     consoles->setSettings(settings);
     psn_account->setSettings(settings);
+    diagnostic->setSettings(settings);
     connect(settings, &Settings::CurrentProfileChanged, this, &QmlBackend::profileChanged);
     settings_qml->setSettings(settings);
     window->setSettings(settings);
@@ -964,6 +995,10 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
 
     try {
         session = new StreamSession(session_info, this);
+        if (!session_info.duid.isEmpty())
+            remote_quality->watch(session, PresetFromHeight(session_info.video_profile.height));
+        else
+            setSessionNotice(QString());
     } catch (const Exception &e) {
         emit error(tr("Stream failed"), tr("Failed to initialize Stream Session: %1").arg(e.what()));
         return;
@@ -1009,6 +1044,12 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
     });
 
     StreamSession *session_for_connections = session;
+    connect(session, &StreamSession::CantDisplayChanged, this, [](bool cant_display) {
+        if (cant_display)
+            qCWarning(logSession) << "La console affiche un contenu interdit à distance (appli vidéo, disque…) : image remplacée par un message";
+        else
+            qCInfo(logSession) << "L'image de la console est de nouveau affichable";
+    });
     connect(session, &StreamSession::SessionQuit, this, [this, session_for_connections](ChiakiQuitReason reason, const QString &reason_str) {
         if (session != session_for_connections)
             return;
@@ -1054,6 +1095,9 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
 
         session_for_connections->deleteLater();
         session = nullptr;
+        remote_quality->stop();
+        if (!restart_pending && !retry_restart)
+            setSessionNotice(QString());
         emit sessionChanged(session);
 
         sleep_inhibit->release();
@@ -1331,6 +1375,14 @@ void QmlBackend::connectToHost(int index, QString nickname)
                 fullscreen,
                 zoom,
                 stretch);
+        // partie par Internet : une définition adaptée à la connexion, jamais plus que le réglage
+        {
+            const int chosen = PresetFromHeight(info.video_profile.height);
+            const int start = RemoteQualityGuard::startPreset(chosen);
+            if (start < chosen)
+                ApplyPreset(info.video_profile, start);
+            setSessionNotice(tr("Playing over the Internet: quality %1, adjusted to your connection").arg(RemoteQualityGuard::presetName(start)));
+        }
 
         QString expiry_s = settings->GetPsnAuthTokenExpiry();
         QString refresh = settings->GetPsnRefreshToken();
@@ -1382,22 +1434,34 @@ QVariantMap QmlBackend::sessionQuality() const
 // et on se reconnecte tout de suite avec la nouvelle qualité
 void QmlBackend::restartSessionWithResolution(int preset)
 {
+    if (!session_info.duid.isEmpty())
+        setSessionNotice(QString());
+    restartSession(preset, true);
+}
+
+void QmlBackend::restartSession(int preset, bool remember)
+{
     if (!session || restart_pending)
         return;
     const auto resolution = static_cast<ChiakiVideoResolutionPreset>(preset);
     const bool ps5 = chiaki_target_is_ps5(session_info.target);
     const bool local = session_info.duid.isEmpty();
-    if (ps5) {
-        if (local) { settings->SetResolutionLocalPS5(resolution); settings->SetBitrateLocalPS5(0); }
-        else { settings->SetResolutionRemotePS5(resolution); settings->SetBitrateRemotePS5(0); }
-    } else {
-        if (local) { settings->SetResolutionLocalPS4(resolution); settings->SetBitrateLocalPS4(0); }
-        else { settings->SetResolutionRemotePS4(resolution); settings->SetBitrateRemotePS4(0); }
-    }
-    settings_qml->refreshAllKeys();
     restart_info = session_info;
-    restart_info.video_profile = ps5 ? (local ? settings->GetVideoProfileLocalPS5() : settings->GetVideoProfileRemotePS5())
-                                     : (local ? settings->GetVideoProfileLocalPS4() : settings->GetVideoProfileRemotePS4());
+    if (remember) {
+        if (ps5) {
+            if (local) { settings->SetResolutionLocalPS5(resolution); settings->SetBitrateLocalPS5(0); }
+            else { settings->SetResolutionRemotePS5(resolution); settings->SetBitrateRemotePS5(0); }
+        } else {
+            if (local) { settings->SetResolutionLocalPS4(resolution); settings->SetBitrateLocalPS4(0); }
+            else { settings->SetResolutionRemotePS4(resolution); settings->SetBitrateRemotePS4(0); }
+        }
+        settings_qml->refreshAllKeys();
+        restart_info.video_profile = ps5 ? (local ? settings->GetVideoProfileLocalPS5() : settings->GetVideoProfileRemotePS5())
+                                         : (local ? settings->GetVideoProfileLocalPS4() : settings->GetVideoProfileRemotePS4());
+    } else {
+        // baisse automatique : seulement pour cette partie, le réglage de l'utilisateur ne change pas
+        ApplyPreset(restart_info.video_profile, preset);
+    }
     restart_pending = true;
     restart_was_fullscreen = window->windowState() == Qt::WindowFullScreen;
     restart_geometry = window->geometry();
@@ -1434,11 +1498,19 @@ void QmlBackend::stopSession(bool sleep)
     session->Stop();
 }
 
+void QmlBackend::setSessionNotice(const QString &notice)
+{
+    if (session_notice == notice)
+        return;
+    session_notice = notice;
+    emit sessionNoticeChanged();
+}
+
 void QmlBackend::sessionGoHome()
 {
     if (!session)
         return;
-
+    qCInfo(logSession) << "Retour à l'écran d'accueil de la console demandé";
     session->GoHome();
 }
 
