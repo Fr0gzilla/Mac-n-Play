@@ -119,9 +119,7 @@ Mac'n'Play est testé sur **PS4** avec une manette DualShock 4 en réseau local.
 
 ## Fabriquer l'appli soi-même
 
-Les étapes complètes sont dans [`.github/workflows/build-macos-arm.yml`](.github/workflows/build-macos-arm.yml) : elles s'appuient sur [Homebrew](https://brew.sh), Qt 6 et CMake.
-
-L'organisation du code (modèle MVC, rôle de chaque fichier, journal, tests) est décrite dans [`ARCHITECTURE.md`](ARCHITECTURE.md).
+Il faut [Homebrew](https://brew.sh), Qt 6 et CMake. Le guide complet est dans [`BUILDING.md`](BUILDING.md). L'organisation du code (modèle MVC, rôle de chaque fichier, journal, tests) est décrite dans [`ARCHITECTURE.md`](ARCHITECTURE.md), et les règles pour contribuer dans [`CONTRIBUTING.md`](CONTRIBUTING.md). L'historique des versions : [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Licence et crédits
 

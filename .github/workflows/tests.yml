@@ -1,0 +1,27 @@
+name: Tests
+
+# à chaque envoi et chaque proposition de modification : les règles métier sont vérifiées
+# en quelques minutes, sans fabriquer toute l'appli
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  regles:
+    name: Tests des règles métier
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Qt (Homebrew)
+        run: brew install qt@6 ninja
+
+      - name: Compilation et tests
+        run: |
+          cmake -S gui/tests -B build-tests -G Ninja -DCMAKE_PREFIX_PATH="$(brew --prefix)/opt/qt@6"
+          cmake --build build-tests
+          ctest --test-dir build-tests --output-on-failure
