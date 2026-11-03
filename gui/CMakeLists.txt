@@ -82,12 +82,6 @@ set(RESOURCE_FILES "")
 
 if(APPLE)
 	list(APPEND RESOURCE_FILES "chiaking.icns")
-elseif(WIN32)
-	configure_file(
-		${CMAKE_CURRENT_SOURCE_DIR}/chiaking.rc.in
-		${CMAKE_CURRENT_SOURCE_DIR}/chiaking.rc
-		@ONLY)
-	list(APPEND RESOURCE_FILES "chiaking.rc")
 endif()
 
 if(CHIAKI_ENABLE_STEAMDECK_NATIVE AND LINUX)
@@ -103,11 +97,6 @@ if(APPLE)
 		src/macMicPermission.m
 		include/macWakeSleep.h
 		src/macWakeSleep.cpp
-	)
-elseif(WIN32)
-	list(APPEND SOURCE_FILES
-		include/windowsWakeSleep.h
-		src/windowsWakeSleep.cpp
 	)
 endif()
 
@@ -181,7 +170,6 @@ install(TARGETS chiaki
 		BUNDLE DESTINATION bin)
 install(FILES chiaking.desktop DESTINATION share/applications)
 install(FILES chiaking.png DESTINATION share/icons/hicolor/512x512/apps)
-install(FILES io.github.streetpea.Chiaki4deck.appdata.xml DESTINATION share/metainfo)
 
 # Version de Mac'n'Play (donnée par le script de fabrication) : seul main.cpp est recompilé quand elle change
 set(MACNPLAY_VERSION "" CACHE STRING "Version de Mac'n'Play affichée dans l'appli")

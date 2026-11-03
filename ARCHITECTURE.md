@@ -166,6 +166,10 @@ et sont gardés tels quels. Ils sont très techniques, et les modifier sans test
 de casser l'image ou la connexion. La réorganisation MVC concerne la couche Mac'n'Play :
 l'interface et ses contrôleurs.
 
+Ce qui ne servait pas sur Mac a été retiré du dépôt : versions Windows, Linux (Flatpak, AppImage),
+Steam Deck, Nintendo Switch, artwork Steam et documentation de chiaki-ng. On les retrouve dans
+[chiaki-ng](https://github.com/streetpea/chiaki-ng) ou dans l'historique Git de ce dépôt.
+
 ## Règles pour écrire du code dans ce projet
 
 - **Une classe, un rôle** : si une classe doit faire autre chose, on crée un nouveau contrôleur.

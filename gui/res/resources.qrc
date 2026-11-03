@@ -31,11 +31,6 @@
     <file>l3.svg</file>
     <file>r3.svg</file>
     <file>options.svg</file>
-    <file>steam_hero.png</file>
-    <file>steam_icon.png</file>
-    <file>steam_landscape.png</file>
-    <file>steam_logo.png</file>
-    <file>steam_portrait.png</file>
   </qresource>
   <qresource prefix="/shaders">
     <file alias="FSR.glsl">shaders/FSR.glsl</file>

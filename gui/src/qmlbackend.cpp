@@ -19,7 +19,6 @@
 #ifdef Q_OS_MACOS
 #include "macWakeSleep.h"
 #elif defined(Q_OS_WINDOWS)
-#include "windowsWakeSleep.h"
 #endif
 #if CHIAKI_GUI_ENABLE_STEAM_SHORTCUT
 #include "steamtools.h"

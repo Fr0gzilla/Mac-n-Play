@@ -39,3 +39,5 @@ chiaki.conf
 .cache/
 *.vscode
 site/
+gui/CMakeFiles/
+gui/cmake_install.cmake
