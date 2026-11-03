@@ -20,13 +20,17 @@
 Mac'n'Play affiche l'écran de votre PlayStation sur votre Mac (Remote Play) et transmet votre manette à la console. C'est une version pensée pour macOS, basée sur le projet libre [chiaki-ng](https://github.com/streetpea/chiaki-ng).
 
 - **Accueil à la manette** : la carte de votre console, son état (allumée, en veille), et un appui sur ✕ pour jouer.
-- **Votre compte PSN** sur l'accueil : avatar, pseudo, niveau et trophées.
+- **Votre compte PSN** sur l'accueil : avatar, pseudo, niveau et trophées, gardés sur le Mac pour s'afficher même hors ligne.
 - **Réglages automatiques** adaptés à votre console et à votre connexion, modifiables à tout moment.
 - **Menu en jeu** (L1 + R1 + L3 + R3) : volume, micro, zoom, qualité d'image, retour à l'accueil.
 - **Baisse de qualité en pleine partie** si votre connexion a du mal, sans réduire la taille de l'image.
 - **Jusqu'à deux consoles**, chacune avec ses propres réglages.
 - **Assistant d'ajout de console** en trois étapes, avec les explications à chaque écran.
-- Entièrement en français.
+- **Jeu hors de chez soi** par Internet : la qualité s'adapte toute seule à la connexion (par exemple 360p sur un partage de connexion de téléphone) et baisse d'un cran si l'image saccade.
+- **« Tester ma connexion »** : l'appli vérifie le réseau du Mac, Internet, le compte PSN et la console, et explique en clair ce qui ne va pas.
+- **Nouvelles versions signalées** sur l'accueil, avec un bouton pour les télécharger.
+- **Journal** à copier en un clic pour signaler un problème.
+- En français ou en anglais, selon la langue de votre Mac.
 
 ## Ce qu'il faut
 
@@ -99,7 +103,10 @@ Toutes ces combinaisons se modifient dans Paramètres › Manettes.
 
 ## En cas de problème
 
+- **Commencez par Paramètres › Configuration › Tester ma connexion** : il dit ce qui bloque (réseau, Internet, compte PSN ou console).
 - **La console n'apparaît pas** : vérifiez que le Mac et la console sont sur le même réseau, et que la lecture à distance est activée sur la console.
+- **« Le contenu ne peut pas être affiché via Remote Play »** : une appli vidéo (YouTube, Netflix…) ou un disque est ouvert sur la console. Appuyez sur le bouton **PS** pour revenir à l'accueil de la console, puis fermez l'appli. Pensez à la fermer avant de mettre la console en mode repos.
+- **Le jeu par Internet ne marche pas au lycée, à la fac ou au travail** : ces réseaux bloquent souvent les connexions de Sony. Utilisez un autre réseau, par exemple le partage de connexion de votre téléphone.
 - **« La console est déjà utilisée »** : une autre lecture à distance est ouverte (sur un téléphone, un autre ordinateur, ou une autre fenêtre de Mac'n'Play). Fermez-la et réessayez.
 - **L'image saccade** : ouvrez le menu en jeu (L1 + R1 + L3 + R3) et baissez la **qualité**. Brancher la console en câble aide beaucoup.
 - **La manette ne répond pas** : déconnectez-la puis reconnectez-la dans Réglages Système › Bluetooth.
@@ -108,7 +115,7 @@ Pour signaler un problème : [ouvrir un ticket](https://github.com/Fr0gzilla/Mac
 
 ## État du projet
 
-Mac'n'Play est testé sur **PS4 en réseau local** avec une manette DualShock 4. La **PS5** et le **jeu hors de chez soi** (par Internet) sont présents mais n'ont pas encore été testés : vos retours sont les bienvenus.
+Mac'n'Play est testé sur **PS4** avec une manette DualShock 4 en réseau local. La connexion **par Internet** a été vérifiée en 5G, mais peu essayée en vraie partie, et la **PS5** n'a pas encore été testée : vos retours sont les bienvenus.
 
 ## Fabriquer l'appli soi-même
 
@@ -128,7 +135,7 @@ L'organisation du code (modèle MVC, rôle de chaque fichier, journal, tests) es
 
 ## English
 
-**Mac'n'Play** lets you play your PS4 or PS5 on your Mac with your controller (Remote Play). It is a macOS-focused version of the open source [chiaki-ng](https://github.com/streetpea/chiaki-ng) project. The interface is in French; English text appears where no translation exists.
+**Mac'n'Play** lets you play your PS4 or PS5 on your Mac with your controller (Remote Play). It is a macOS-focused version of the open source [chiaki-ng](https://github.com/streetpea/chiaki-ng) project. The interface follows your Mac's language (French or English).
 
 ### Requirements
 
@@ -151,9 +158,11 @@ L'organisation du code (modèle MVC, rôle de chaque fichier, journal, tests) es
 3. Add your console with the **+** button (or R3) and enter the 8-digit code shown on the console under *Add Device*.
 4. Press ✕ on the console card to play. **L1 + R1 + L3 + R3** opens the in-game menu (volume, zoom, quality, back to home).
 
+If something doesn't work, use **Settings › Config › Test my connection**: it checks the Mac's network, the Internet, the PSN account and the console. Playing over the Internet adapts the quality to your connection automatically.
+
 ### Status
 
-Tested on **PS4 over a local network**. PS5 and playing over the Internet are included but not tested yet; feedback is welcome in the [issues](https://github.com/Fr0gzilla/Mac-n-Play/issues).
+Tested on **PS4** with a DualShock 4 on a local network. Connecting over the Internet was checked on 5G but only lightly played, and PS5 is not tested yet; feedback is welcome in the [issues](https://github.com/Fr0gzilla/Mac-n-Play/issues).
 
 ### License
 

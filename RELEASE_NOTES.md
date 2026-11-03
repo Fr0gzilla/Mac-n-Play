@@ -1,10 +1,20 @@
-Première version publique de Mac'n'Play.
-
 **Pour Mac avec puce Apple (M1 à M5), macOS 15 ou plus récent.**
 
-1. Téléchargez le fichier `.dmg` ci-dessous, ouvrez-le et glissez Mac'n'Play dans Applications.
+### Nouveautés de la 1.1
+
+- **Jeu hors de chez soi plus fiable** : la qualité s'adapte toute seule à la connexion (360p sur un partage de connexion de téléphone, 540p ailleurs) et baisse d'un cran si l'image saccade. Un message indique quand vous jouez par Internet.
+- **« Tester ma connexion »** (Paramètres › Configuration) : vérifie le réseau du Mac, Internet, le compte PSN et la console, et explique ce qui bloque.
+- **Contenu protégé** (YouTube, Netflix… ouverts sur la console) : la manette n'est plus bloquée, le bouton PS ramène la console à son accueil.
+- **Carte du compte PSN** gardée sur le Mac : elle s'affiche dès le lancement, même hors ligne, et s'actualise toutes les 5 minutes.
+- **Nouvelles versions signalées** sur l'accueil.
+- **Une seule copie de l'appli à la fois** : fini la console bloquée par deux fenêtres ouvertes.
+- **Journal** à copier en un clic pour signaler un problème.
+- **Nouvelle icône** au format de macOS 26.
+- Le vrai nom de votre PS4 sur sa carte, au lieu de « Main PS4 Console ».
+
+### Installation
+
+1. Téléchargez le fichier `.dmg` ci-dessous, ouvrez-le et glissez Mac'n'Play dans Applications. Ou avec Homebrew : `brew upgrade --cask macnplay`.
 2. Au premier lancement, macOS bloque l'appli (elle n'est pas enregistrée auprès d'Apple) : Réglages Système › Confidentialité et sécurité › **Ouvrir quand même**.
 
 Le mode d'emploi complet est sur la [page d'accueil du projet](https://github.com/Fr0gzilla/Mac-n-Play#readme).
-
-Testé sur PS4 en réseau local. PS5 et jeu par Internet : pas encore testés, vos retours sont les bienvenus.
