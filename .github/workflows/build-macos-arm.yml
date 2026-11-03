@@ -68,18 +68,23 @@ jobs:
       - name: Icône au format macOS 26
         run: |
           # l'icône « Liquid Glass » (gui/AppIcon.icon, format Icon Composer) se compile avec
-          # l'outil actool de Xcode 26 ; sans lui, l'appli garde l'icône à l'ancien format
-          XC=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
-          if [[ -z "$XC" ]]; then
-            echo "::warning::Xcode 26 absent : icône à l'ancien format"
-            exit 0
-          fi
-          echo "Xcode utilisé : $XC"
-          mkdir -p icon-out
-          DEVELOPER_DIR="$XC/Contents/Developer" xcrun actool gui/AppIcon.icon --compile icon-out \
-            --app-icon AppIcon --enable-on-demand-resources NO --platform macosx --target-device mac \
-            --minimum-deployment-target 15.0 --output-partial-info-plist icon-out/partial.plist
-          ls -la icon-out
+          # l'outil actool de Xcode 26. Il plante parfois sur certaines machines GitHub :
+          # on essaie chaque Xcode 26 installé, et sans succès l'appli garde l'ancienne icône.
+          for XC in $(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -rV); do
+            echo "Essai avec $XC"
+            rm -rf icon-out && mkdir -p icon-out
+            if DEVELOPER_DIR="$XC/Contents/Developer" xcrun actool gui/AppIcon.icon --compile icon-out \
+                --app-icon AppIcon --enable-on-demand-resources NO --platform macosx --target-device mac \
+                --minimum-deployment-target 15.0 --output-partial-info-plist icon-out/partial.plist >actool.log 2>&1 \
+                && [[ -f icon-out/Assets.car ]]; then
+              echo "Icône compilée avec $XC"
+              ls -la icon-out
+              exit 0
+            fi
+            tail -5 actool.log
+          done
+          rm -rf icon-out
+          echo "::warning::Icône macOS 26 non compilée : l'appli garde l'icône à l'ancien format"
 
       - name: Package
         run: |
