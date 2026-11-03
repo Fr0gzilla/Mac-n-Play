@@ -1,3 +1,5 @@
+> **Pré-version** à essayer : elle n'a pas encore été testée en vraie partie après la réorganisation du code. Pour une version éprouvée, prenez la 1.0.0.
+
 **Pour Mac avec puce Apple (M1 à M5), macOS 15 ou plus récent.**
 
 ### Nouveautés de la 1.1

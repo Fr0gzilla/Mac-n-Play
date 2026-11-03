@@ -49,11 +49,15 @@ namespace MacnPlayRules
     // ---- versions (prévenir qu'une nouvelle version est sortie) ----
 
     // « v1.2.3 » ou « 1.2.3 » → {1, 2, 3} ; vide si ce n'est pas un numéro de version
-    // (par exemple « dev-b565efe » pour une fabrication de test)
+    // (par exemple « dev-b565efe » pour une fabrication de test). Une pré-version
+    // (« 1.2.3-beta ») donne les mêmes nombres : voir isPrerelease().
     inline std::vector<int> parseVersion(std::string text)
     {
         if(!text.empty() && (text[0] == 'v' || text[0] == 'V'))
             text.erase(0, 1);
+        const size_t dash = text.find('-');
+        if(dash != std::string::npos && dash > 0)
+            text.erase(dash);
         std::vector<int> parts;
         int value = -1;
         for(char c : text)
@@ -74,6 +78,13 @@ namespace MacnPlayRules
         return parts;
     }
 
+    // « 1.2.3-beta » : pré-version, plus ancienne que la version finale « 1.2.3 »
+    inline bool isPrerelease(const std::string &text)
+    {
+        const size_t dash = text.find('-');
+        return dash != std::string::npos && dash > 1 && !parseVersion(text).empty();
+    }
+
     // la version publiée est-elle plus récente que celle installée ?
     // (une version installée sans numéro, fabrication de test, n'est jamais signalée)
     inline bool versionIsNewer(const std::string &published, const std::string &installed)
@@ -84,7 +95,10 @@ namespace MacnPlayRules
         const size_t n = a.size() > b.size() ? a.size() : b.size();
         a.resize(n, 0);
         b.resize(n, 0);
-        return a > b;
+        if(a != b)
+            return a > b;
+        // mêmes numéros : la version finale l'emporte sur la pré-version
+        return isPrerelease(installed) && !isPrerelease(published);
     }
 
     // ---- qualité du jeu à distance (par Internet) ----

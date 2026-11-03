@@ -148,4 +148,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" Mac-n-Play-*.dmg --title "Mac'n'Play $VERSION" --notes-file RELEASE_NOTES.md
+          # une étiquette avec un tiret (v1.1.0-beta) est publiée en pré-version : elle ne devient pas
+          # « la dernière version » (lien de téléchargement, Homebrew, bandeau de mise à jour)
+          PRE=""
+          [[ "$GITHUB_REF_NAME" == *-* ]] && PRE="--prerelease"
+          gh release create "$GITHUB_REF_NAME" Mac-n-Play-*.dmg $PRE --title "Mac'n'Play $VERSION" --notes-file RELEASE_NOTES.md

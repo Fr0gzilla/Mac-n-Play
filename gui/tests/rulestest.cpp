@@ -68,6 +68,18 @@ private slots:
         QVERIFY(!versionIsNewer("v1.1.0", "dev-b565efe"));  // fabrication de test : jamais signalée
     }
 
+    void preVersions()
+    {
+        QCOMPARE(parseVersion("v1.1.0-beta"), std::vector<int>({1, 1, 0}));
+        QVERIFY(isPrerelease("1.1.0-beta"));
+        QVERIFY(!isPrerelease("1.1.0"));
+        QVERIFY(!isPrerelease("dev-b565efe"));
+        QVERIFY(versionIsNewer("v1.1.0", "1.1.0-beta"));    // la finale remplace la pré-version
+        QVERIFY(!versionIsNewer("v1.1.0-beta", "1.1.0"));
+        QVERIFY(versionIsNewer("v1.1.0-beta", "1.0.0"));
+        QVERIFY(!versionIsNewer("v1.0.0", "1.1.0-beta"));
+    }
+
     void reconnaissanceDuPartageDeConnexion()
     {
         QVERIFY(isPhoneHotspotAddress(0xAC140A02u));   // 172.20.10.2 (iPhone)
