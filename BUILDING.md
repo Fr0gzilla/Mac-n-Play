@@ -86,5 +86,5 @@ Le plus simple pour obtenir un .dmg est de lancer la fabrication GitHub : onglet
 
 Poser une étiquette `vX.Y.Z` sur `main` et l'envoyer : la fabrication GitHub crée la page de
 téléchargement avec le .dmg et le texte de `RELEASE_NOTES.md`. Une étiquette avec un tiret
-(`v1.2.0-beta`) est publiée en pré-version. Mettre ensuite à jour `version` et `sha256` dans
-[`Casks/macnplay.rb`](Casks/macnplay.rb) pour Homebrew.
+(`v1.2.0-beta`) est publiée en pré-version. Pour une version définitive, la fabrication met
+aussi à jour la recette Homebrew ([`Casks/macnplay.rb`](Casks/macnplay.rb) : version et empreinte).

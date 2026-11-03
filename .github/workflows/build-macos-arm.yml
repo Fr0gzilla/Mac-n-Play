@@ -18,7 +18,7 @@ jobs:
     env:
       MACOSX_DEPLOYMENT_TARGET: '15.0'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           submodules: recursive
 
@@ -94,7 +94,11 @@ jobs:
           cp scripts/qtwebengine_import.qml gui/src/qml/
           $(brew --prefix)/opt/qt@6/bin/macdeployqt "$APP" -qmldir="$PWD/gui/src/qml" -libpath=$(brew --prefix)/lib
           mkdir -p "$APP/Contents/Resources/vulkan/icd.d"
-          wget -q https://github.com/KhronosGroup/MoltenVK/releases/download/v1.2.9/MoltenVK-macos.tar && tar xf MoltenVK-macos.tar
+          wget -q https://github.com/KhronosGroup/MoltenVK/releases/download/v1.2.9/MoltenVK-macos.tar
+          # empreinte du fichier téléchargé : affichée à chaque fabrication, vérifiée dès qu'elle est connue
+          echo "MoltenVK sha256 : $(shasum -a 256 MoltenVK-macos.tar | cut -d' ' -f1)"
+          if [[ -n "${MOLTENVK_SHA256:-}" ]]; then echo "$MOLTENVK_SHA256  MoltenVK-macos.tar" | shasum -a 256 -c -; fi
+          tar xf MoltenVK-macos.tar
           cp MoltenVK/MoltenVK/dylib/macOS/* "$APP/Contents/Resources/vulkan/icd.d"
           $(brew --prefix)/opt/qt@6/bin/macdeployqt "$APP" -qmldir="$PWD/gui/src/qml" -libpath=$(brew --prefix)/lib
           if [[ -d "$APP/Contents/Frameworks/QtWebEngineCore.framework/Helpers/QtWebEngineProcess.app" ]]
@@ -141,7 +145,7 @@ jobs:
           [[ -n "$v" && "$v" -ge 6 ]]
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: Mac-n-Play-${{ env.VERSION }}
           path: Mac-n-Play-*.dmg
@@ -158,3 +162,14 @@ jobs:
           PRE=""
           [[ "$GITHUB_REF_NAME" == *-* ]] && PRE="--prerelease"
           gh release create "$GITHUB_REF_NAME" Mac-n-Play-*.dmg $PRE --title "Mac'n'Play $VERSION" --notes-file RELEASE_NOTES.md
+
+      - name: Update Homebrew cask
+        # version définitive seulement : la recette Homebrew suit la dernière version stable
+        if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')
+        run: |
+          SHA=$(shasum -a 256 Mac-n-Play-*.dmg | cut -d' ' -f1)
+          git fetch -q origin main && git checkout -q -B main origin/main
+          sed -i '' -E "s/^  version \".*\"/  version \"$VERSION\"/; s/^  sha256 \".*\"/  sha256 \"$SHA\"/" Casks/macnplay.rb
+          git diff --stat
+          git -c user.name=Fr0gzilla -c user.email=242606097+Fr0gzilla@users.noreply.github.com commit -qam "Homebrew : Mac'n'Play $VERSION"
+          git push -q origin main
