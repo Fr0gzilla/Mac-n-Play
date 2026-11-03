@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
+// Copyright (C) 2026 Fr0gzilla (Mac'n'Play)
 // Contrôleur (MVC) de l'attribution des boutons de la manette.
 //
 // Rôle unique : permettre à l'utilisateur de choisir quel bouton physique de sa manette

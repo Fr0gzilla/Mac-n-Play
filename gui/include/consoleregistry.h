@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
+// Copyright (C) 2026 Fr0gzilla (Mac'n'Play)
 // Contrôleur (MVC) des consoles.
 //
 // Rôle unique : savoir quelles consoles existent et agir sur elles hors partie :

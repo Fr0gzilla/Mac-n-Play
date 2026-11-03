@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
+// Copyright (C) 2026 Fr0gzilla (Mac'n'Play)
 // Journal de l'appli : un fichier texte par lancement, pour retrouver l'origine d'une panne.
 //
 // Chaque ligne donne l'heure, la gravité et le domaine du message, par exemple :

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
+// Copyright (C) 2026 Fr0gzilla (Mac'n'Play)
 // Tests automatiques des règles métier (include/macnplayrules.h).
 // Lancement : ctest dans le dossier de fabrication, ou directement ./macnplay-rules-test
 #include "macnplayrules.h"

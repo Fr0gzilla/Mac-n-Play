@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
+// Copyright (C) 2026 Fr0gzilla (Mac'n'Play)
 // Qualité d'image des parties par Internet.
 //
 // Rôle unique : choisir une définition raisonnable au départ d'une partie à distance,

@@ -145,7 +145,7 @@ Item {
 
             Label {
                 Layout.alignment: Qt.AlignHCenter
-                text: qsTr("%1 / %2 consoles · 2 at most").arg(Chiaki.consoles.registeredCount).arg(Chiaki.consoles.maxConsoles)
+                text: qsTr("%1 / %2 consoles · %2 at most").arg(Chiaki.consoles.registeredCount).arg(Chiaki.consoles.maxConsoles)
                 font.pixelSize: 14
                 color: Chiaki.consoles.limitReached ? "#fbbf24" : Qt.rgba(1, 1, 1, 0.5)
             }

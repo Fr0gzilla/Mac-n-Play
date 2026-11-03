@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
+// Copyright (C) 2026 Fr0gzilla (Mac'n'Play)
+
 #include "connectedcontrollers.h"
 #include "controllermanager.h"
 #include "controllermappingcontroller.h"

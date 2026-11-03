@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
+// Copyright (C) 2026 Fr0gzilla (Mac'n'Play)
 // Une seule copie de Mac'n'Play à la fois.
 //
 // Deux copies ouvertes en même temps (par exemple une ancienne version restée dans

@@ -89,19 +89,19 @@ Item {
 
         C.Button {
             id: aboutButton
-            text: qsTr("About %1-ng").arg(Qt.application.name)
+            text: qsTr("About Mac'n'Play")
             onClicked: aboutDialog.open()
             Material.roundedScale: Material.SmallScale
         }
 
         C.CheckBox {
-            text: qsTr("Sanitize Logs (checked)")
+            text: qsTr("Hide addresses and identifiers in game logs (recommended)")
             checked: Chiaki.settings.logSanitize
             onToggled: Chiaki.settings.logSanitize = checked
         }
 
             C.CheckBox {
-                text: qsTr("Verbose Logging (unchecked)")
+                text: qsTr("Detailed logs (only to investigate a problem)")
                 checked: Chiaki.settings.logVerbose
                 onToggled: Chiaki.settings.logVerbose = checked
             }

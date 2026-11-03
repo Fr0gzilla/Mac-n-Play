@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
+// Copyright (C) 2026 Fr0gzilla (Mac'n'Play)
 // Contrôleur (MVC) du compte PlayStation Network.
 //
 // Rôle unique : connecter l'utilisateur à son compte PSN, garder ses jetons d'accès

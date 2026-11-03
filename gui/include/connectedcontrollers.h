@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
+// Copyright (C) 2026 Fr0gzilla (Mac'n'Play)
 // Contrôleur (MVC) des manettes branchées.
 //
 // Rôle unique : tenir la liste des manettes reliées au Mac et leur transmettre

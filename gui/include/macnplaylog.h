@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
+// Copyright (C) 2026 Fr0gzilla (Mac'n'Play)
 // Catégories du journal de Mac'n'Play : une par domaine, pour savoir d'un coup d'œil
 // d'où vient un message (et donc une panne). Chaque ligne du journal porte le nom
 // de sa catégorie, par exemple « [macnplay.psn] Profil PSN reçu ».
