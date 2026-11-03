@@ -562,6 +562,10 @@ public:
     // change un bouton de la combinaison « pavé tactile » ; refusé (false) si elle deviendrait
     // identique à celle du menu en jeu, car ouvrir le menu basculerait aussi la croix
     Q_INVOKABLE bool trySetDpadTouchShortcut(int slot, uint button);
+    // PS4 Pro de la console (adresse MAC) : réglage de l'utilisateur, confirmé ou corrigé
+    // automatiquement à la première partie en 1080p
+    Q_INVOKABLE bool isPs4Pro(const QString &mac) const;
+    Q_INVOKABLE void setPs4Pro(const QString &mac, bool pro);
     uint dpadTouchShortcut1() const;
     void setDpadTouchShortcut1(uint button);
 
@@ -620,6 +624,7 @@ public:
     Q_INVOKABLE QString stringForStreamMenuShortcut() const;
 
 signals:
+    void ps4ProHostsChanged();
     void resolutionLocalPS4Changed();
     void resolutionRemotePS4Changed();
     void resolutionLocalPS5Changed();

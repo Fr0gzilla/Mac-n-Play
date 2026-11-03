@@ -1110,6 +1110,29 @@ QString Settings::GetPsnAccountId() const
 	return settings.value("settings/psn_account_id").toString();
 }
 
+static const char *PS4_PRO_HOSTS_KEY = "macnplay/ps4ProHosts";
+
+bool Settings::GetPs4Pro(const QString &mac) const
+{
+	return settings.value(PS4_PRO_HOSTS_KEY).toString().split(",", Qt::SkipEmptyParts).contains(mac);
+}
+
+void Settings::SetPs4Pro(const QString &mac, bool pro)
+{
+	QStringList hosts = settings.value(PS4_PRO_HOSTS_KEY).toString().split(",", Qt::SkipEmptyParts);
+	hosts.removeAll(mac);
+	if(pro)
+		hosts.append(mac);
+	settings.setValue(PS4_PRO_HOSTS_KEY, hosts.join(","));
+	// sans Pro, pas de 1080p : la prochaine partie demande le maximum d'une PS4 classique
+	if(!pro && GetResolutionLocalPS4() == CHIAKI_VIDEO_RESOLUTION_PRESET_1080p)
+	{
+		SetResolutionLocalPS4(CHIAKI_VIDEO_RESOLUTION_PRESET_720p);
+		SetBitrateLocalPS4(0);
+	}
+	emit Ps4ProHostsUpdated();
+}
+
 void Settings::SetPsnAccountId(QString account_id)
 {
 	settings.setValue("settings/psn_account_id", account_id);

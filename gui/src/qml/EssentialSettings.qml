@@ -46,28 +46,16 @@ Flickable {
 
     readonly property bool ps4: consoleIndex === 0
 
-    // PS4 Pro : la console ne le dit pas, l'utilisateur le coche ; retenu par console (identifiant)
-    Settings {
-        id: prefs
-        category: "macnplay"
-        property string ps4ProHosts: ""
+    // PS4 Pro : la console ne le dit pas, l'utilisateur le coche ; retenu par console (Chiaki.settings)
+    property int ps4ProRevision: 0
+    Connections {
+        target: Chiaki.settings
+        function onPs4ProHostsChanged() { essentials.ps4ProRevision++; }
     }
-    readonly property bool ps4Pro: ps4 && !!detectedHost && prefs.ps4ProHosts.split(",").indexOf(detectedHost.mac) >= 0
+    readonly property bool ps4Pro: ps4 && !!detectedHost && (ps4ProRevision, Chiaki.settings.isPs4Pro(detectedHost.mac))
     function setPs4Pro(pro) {
-        if (!detectedHost)
-            return;
-        let ids = prefs.ps4ProHosts ? prefs.ps4ProHosts.split(",") : [];
-        let at = ids.indexOf(detectedHost.mac);
-        if (pro && at < 0)
-            ids.push(detectedHost.mac);
-        if (!pro && at >= 0)
-            ids.splice(at, 1);
-        prefs.ps4ProHosts = ids.join(",");
-        // sans Pro, pas de 1080p : on redescend en 720p
-        if (!pro && Chiaki.settings.resolutionLocalPS4 > 3) {
-            Chiaki.settings.resolutionLocalPS4 = 3;
-            Chiaki.settings.bitrateLocalPS4 = 0;
-        }
+        if (detectedHost)
+            Chiaki.settings.setPs4Pro(detectedHost.mac, pro);
     }
 
 

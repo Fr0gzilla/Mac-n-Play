@@ -196,20 +196,41 @@ void PsnAccount::exchangeCode(const QString &code, const QJSValue &callback)
     request->GetPsnAccountId(code);
 }
 
-void PsnAccount::renewTokens()
+void PsnAccount::renewTokens(std::function<void()> on_success, ErrorCallback on_error)
 {
     qCInfo(logPsn) << "Jetons : renouvellement";
     auto *request = new PSNToken(settings, this);
-    connect(request, &PSNToken::PSNTokenError, this, [](const QString &error) {
+    connect(request, &PSNToken::PSNTokenError, this, [on_error](const QString &error) {
         qCWarning(logPsn) << "Jetons : renouvellement impossible, connexion à distance indisponible :" << error;
+        if(on_error)
+            on_error(error);
     });
-    connect(request, &PSNToken::UnauthorizedError, this, &PsnAccount::forgetCredentials);
-    connect(request, &PSNToken::PSNTokenSuccess, this, [this]() {
+    connect(request, &PSNToken::UnauthorizedError, this, [this, on_error]() {
+        forgetCredentials();
+        if(on_error)
+            on_error(tr("Your PSN session has expired: sign in again."));
+    });
+    connect(request, &PSNToken::PSNTokenSuccess, this, [this, on_success]() {
         qCInfo(logPsn) << "Jetons : renouvelés";
         emit tokensReady();
+        if(on_success)
+            on_success();
     });
     connect(request, &PSNToken::Finished, request, &QObject::deleteLater);
     request->RefreshPsnToken(settings->GetPsnRefreshToken());
+}
+
+bool PsnAccount::whenTokensValid(std::function<void()> on_ready, ErrorCallback on_error)
+{
+    const QString expiry_text = settings->GetPsnAuthTokenExpiry();
+    if(expiry_text.isEmpty() || settings->GetPsnRefreshToken().isEmpty())
+        return false;
+    const QDateTime expiry = QDateTime::fromString(expiry_text, settings->GetTimeFormat());
+    if(MacnPlayRules::tokenNeedsRenewal(QDateTime::currentSecsSinceEpoch(), expiry.toSecsSinceEpoch()))
+        renewTokens(std::move(on_ready), std::move(on_error));
+    else
+        on_ready();
+    return true;
 }
 
 void PsnAccount::eraseTokens()
@@ -238,6 +259,7 @@ void PsnAccount::logout()
 
 void PsnAccount::refresh()
 {
+    // jetons encore valides : on prévient tout de suite ; sinon renewTokens() le fera
     const QString expiry_text = settings->GetPsnAuthTokenExpiry();
     if(expiry_text.isEmpty() || settings->GetPsnRefreshToken().isEmpty())
         return;

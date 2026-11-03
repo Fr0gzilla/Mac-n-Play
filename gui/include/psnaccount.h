@@ -17,6 +17,8 @@
 #include <QUrl>
 #include <QVariantMap>
 
+#include <functional>
+
 class Settings;
 class QNetworkAccessManager;
 #ifdef CHIAKI_HAVE_WEBENGINE
@@ -41,8 +43,14 @@ public:
     QVariantMap profile() const { return current_profile; }
     bool connected() const;
 
-    // renouvelle les jetons avec le jeton de renouvellement enregistré
-    void renewTokens();
+    using ErrorCallback = std::function<void(const QString &error)>;
+
+    // renouvelle les jetons avec le jeton de renouvellement enregistré ; on_success / on_error
+    // sont appelés à la fin (en plus du signal tokensReady)
+    void renewTokens(std::function<void()> on_success = {}, ErrorCallback on_error = {});
+    // lance on_ready dès que les jetons sont valides (tout de suite, ou après les avoir renouvelés) ;
+    // false si aucun compte n'est connecté (on_error n'est alors pas appelé)
+    bool whenTokensValid(std::function<void()> on_ready, ErrorCallback on_error = {});
     // Sony refuse les jetons : on les efface, puis credentialsExpired() demande une reconnexion
     void forgetCredentials();
     // l'utilisateur se déconnecte : jetons, carte du compte et avatar enregistré sont effacés

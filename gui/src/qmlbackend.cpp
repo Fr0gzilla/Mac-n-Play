@@ -372,43 +372,7 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
         });
         psn_auto_connect_timer->start(PSN_INTERNET_WAIT_SECONDS * 1000);
     }
-    connect(psn_reconnect_timer, &QTimer::timeout, this, [this]{
-        QString refresh = this->settings->GetPsnRefreshToken();
-        if(refresh.isEmpty())
-        {
-            qCWarning(logSession) << "Connexion à distance impossible : pas de jeton PSN enregistré";
-            psn_reconnect_tries = 0;
-            resume_session = false;
-            psn_reconnect_timer->stop();
-            setConnectState(PsnConnectState::ConnectFailed);
-            return;
-        }
-        PSNToken *psnToken = new PSNToken(this->settings, this);
-        connect(psnToken, &PSNToken::PSNTokenError, this, [this](const QString &error) {
-            qCWarning(logSession) << "Internet semble coupé, nouvel essai dans 5 secondes :" << error;
-            psn_reconnect_tries++;
-            if(psn_reconnect_tries < MAX_PSN_RECONNECT_TRIES)
-                return;
-            else
-            {
-                resume_session = false;
-                psn_reconnect_tries = 0;
-                psn_reconnect_timer->stop();
-                setConnectState(PsnConnectState::ConnectFailed);
-            }
-        });
-        connect(psnToken, &PSNToken::UnauthorizedError, psn_account, &PsnAccount::forgetCredentials);
-        connect(psnToken, &PSNToken::PSNTokenSuccess, this, [this]() {
-            qCInfo(logSession) << "Internet est revenu, jetons PSN renouvelés";
-            resume_session = false;
-            psn_reconnect_tries = 0;
-            psn_reconnect_timer->stop();
-            createSession(session_info);
-        });
-        connect(psnToken, &PSNToken::Finished, psnToken, &QObject::deleteLater);
-        QString refresh_token = this->settings->GetPsnRefreshToken();
-        psnToken->RefreshPsnToken(std::move(refresh_token));
-    });
+    connect(psn_reconnect_timer, &QTimer::timeout, this, &QmlBackend::retryPsnAfterOutage);
     connect(wakeup_start_timer, &QTimer::timeout, this, [this]
     {
         emit wakeupStartFailed();
@@ -488,14 +452,8 @@ QmlBackend::~QmlBackend()
 {
     if(session)
     {
-        chiaki_log_mutex.lock();
-        chiaki_log_ctx = nullptr;
-        chiaki_log_mutex.unlock();
-        session->deleteLater();
-        session = nullptr;
+        discardSession();
     }
-#ifdef CHIAKI_HAVE_WEBENGINE
-#endif
     frame_thread->quit();
     frame_thread->wait();
     frame_thread->parent()->deleteLater();
@@ -623,45 +581,7 @@ void QmlBackend::profileChanged()
         });
         psn_auto_connect_timer->start(PSN_INTERNET_WAIT_SECONDS * 1000);
     }
-    connect(psn_reconnect_timer, &QTimer::timeout, this, [this]{
-        QString refresh = this->settings->GetPsnRefreshToken();
-        if(refresh.isEmpty())
-        {
-            qCWarning(logSession) << "Connexion à distance impossible : pas de jeton PSN enregistré";
-            psn_reconnect_tries = 0;
-            resume_session = false;
-            psn_reconnect_timer->stop();
-            setConnectState(PsnConnectState::ConnectFailed);
-            return;
-        }
-        PSNToken *psnToken = new PSNToken(this->settings, this);
-        connect(psnToken, &PSNToken::PSNTokenError, this, [this](const QString &error) {
-            qCWarning(logSession) << "Internet semble coupé, nouvel essai dans 5 secondes :" << error;
-            psn_reconnect_tries++;
-            if(psn_reconnect_tries < MAX_PSN_RECONNECT_TRIES)
-                return;
-            else
-            {
-                resume_session = false;
-                psn_reconnect_tries = 0;
-                psn_reconnect_timer->stop();
-                setConnectState(PsnConnectState::ConnectFailed);
-            }
-        });
-        connect(psnToken, &PSNToken::UnauthorizedError, psn_account, &PsnAccount::forgetCredentials);
-        connect(psnToken, &PSNToken::PSNTokenSuccess, this, []() {
-            qCInfo(logSession) << "Internet est revenu, jetons PSN renouvelés";
-        });
-        connect(psnToken, &PSNToken::PSNTokenSuccess, this, [this]() {
-            resume_session = false;
-            psn_reconnect_tries = 0;
-            psn_reconnect_timer->stop();
-            createSession(session_info);
-        });
-        connect(psnToken, &PSNToken::Finished, psnToken, &QObject::deleteLater);
-        QString refresh_token = this->settings->GetPsnRefreshToken();
-        psnToken->RefreshPsnToken(std::move(refresh_token));
-    });
+    connect(psn_reconnect_timer, &QTimer::timeout, this, &QmlBackend::retryPsnAfterOutage);
     sleep_inhibit->deleteLater();
     sleep_inhibit = new SystemdInhibit(QGuiApplication::applicationName(), tr("Remote Play session"), "sleep", "delay", this);
     connect(sleep_inhibit, &SystemdInhibit::sleep, this, &QmlBackend::goToSleep);
@@ -738,11 +658,7 @@ void QmlBackend::checkPsnConnection(const ChiakiErrorCode &err)
             setConnectState(PsnConnectState::ConnectFailedStart);
             if(session)
             {
-                chiaki_log_mutex.lock();
-                chiaki_log_ctx = nullptr;
-                chiaki_log_mutex.unlock();
-                session->deleteLater();
-                session = nullptr;
+                discardSession();
                 consoles->setDiscoveryEnabled(true);
             }
             break;
@@ -750,11 +666,7 @@ void QmlBackend::checkPsnConnection(const ChiakiErrorCode &err)
             setConnectState(PsnConnectState::ConnectFailedConsoleUnreachable);
             if(session)
             {
-                chiaki_log_mutex.lock();
-                chiaki_log_ctx = nullptr;
-                chiaki_log_mutex.unlock();
-                session->deleteLater();
-                session = nullptr;
+                discardSession();
                 consoles->setDiscoveryEnabled(true);
             }
             break;
@@ -762,11 +674,7 @@ void QmlBackend::checkPsnConnection(const ChiakiErrorCode &err)
             setConnectState(PsnConnectState::ConnectFailed);
             if(session)
             {
-                chiaki_log_mutex.lock();
-                chiaki_log_ctx = nullptr;
-                chiaki_log_mutex.unlock();
-                session->deleteLater();
-                session = nullptr;
+                discardSession();
                 consoles->setDiscoveryEnabled(true);
             }
             break;
@@ -792,9 +700,7 @@ void QmlBackend::startSession(bool emit_session_changed)
     } catch (const Exception &e) {
         StreamSession *failed_session = session;
         session = nullptr;
-        chiaki_log_mutex.lock();
-        chiaki_log_ctx = nullptr;
-        chiaki_log_mutex.unlock();
+        detachSessionLog();
         if (window) {
             emit sessionChanged(nullptr);
             window->resetPlaceboQueue();
@@ -823,20 +729,9 @@ void QmlBackend::checkPs4Pro(StreamSession *checked_session)
     const QString mac = pro_check_mac;
     pro_check_mac.clear();
 
-    QSettings prefs;
-    QStringList pro_hosts = prefs.value("macnplay/ps4ProHosts").toString().split(",", Qt::SkipEmptyParts);
     const bool is_pro = height >= pro_check_requested_height;
-    qCInfo(logSession) << "PS4" << mac << "propose jusqu'a" << height << "p :" << (is_pro ? "PS4 Pro" : "PS4 classique");
-    if (is_pro && !pro_hosts.contains(mac))
-        pro_hosts.append(mac);
-    if (!is_pro)
-    {
-        pro_hosts.removeAll(mac);
-        // la prochaine partie demandera directement le maximum de cette console
-        settings->SetResolutionLocalPS4(CHIAKI_VIDEO_RESOLUTION_PRESET_720p);
-        settings->SetBitrateLocalPS4(0);
-    }
-    prefs.setValue("macnplay/ps4ProHosts", pro_hosts.join(","));
+    qCInfo(logSession) << "PS4" << mac << "propose jusqu'à" << height << "p :" << (is_pro ? "PS4 Pro" : "PS4 classique");
+    settings->SetPs4Pro(mac, is_pro);
 }
 
 void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
@@ -1075,21 +970,14 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
                 m += "\n" + tr("Reason") + ": \"" + reason_str + "\"";
             // une PS4 qui refuse la partie en 1080p avant même de démarrer : c'est une PS4 classique
             if (!pro_check_mac.isEmpty() && !session_for_connections->IsConnected()) {
-                QSettings prefs;
-                QStringList pro_hosts = prefs.value("macnplay/ps4ProHosts").toString().split(",", Qt::SkipEmptyParts);
-                pro_hosts.removeAll(pro_check_mac);
-                prefs.setValue("macnplay/ps4ProHosts", pro_hosts.join(","));
-                settings->SetResolutionLocalPS4(CHIAKI_VIDEO_RESOLUTION_PRESET_720p);
-                settings->SetBitrateLocalPS4(0);
+                settings->SetPs4Pro(pro_check_mac, false);
                 pro_check_mac.clear();
                 m += "\n\n" + tr("This PS4 does not accept 1080p, so it is not a PS4 Pro. Image quality is now 720p: start the game again.");
             }
             emit sessionError(tr("Session has quit"), m);
         }
 
-        chiaki_log_mutex.lock();
-        chiaki_log_ctx = nullptr;
-        chiaki_log_mutex.unlock();
+        detachSessionLog();
         pending_recovered_frame.storeRelaxed(0);
         {
             QMutexLocker locker(&hw_transfer_state_mutex);
@@ -1233,32 +1121,10 @@ void QmlBackend::autoRegister()
             false,
             false);
 
-    QString expiry_s = settings->GetPsnAuthTokenExpiry();
-    QString refresh = settings->GetPsnRefreshToken();
-    if(expiry_s.isEmpty() || refresh.isEmpty())
-        return;
-    QDateTime expiry = QDateTime::fromString(expiry_s, settings->GetTimeFormat());
-    // give 1 minute buffer
-    QDateTime now = QDateTime::currentDateTime().addSecs(60);
-    if(now.secsTo(expiry) < 1)
-    {
-        PSNToken *psnToken = new PSNToken(settings, this);
-        connect(psnToken, &PSNToken::PSNTokenError, this, [this](const QString &error) {
-            qCWarning(logSession) << "Jetons PSN non renouvelés, connexion à distance indisponible :" << error;
-        });
-        connect(psnToken, &PSNToken::UnauthorizedError, psn_account, &PsnAccount::forgetCredentials);
-        connect(psnToken, &PSNToken::PSNTokenSuccess, this, []() {
-            qCInfo(logSession) << "Jetons PSN renouvelés";
-        });
-        connect(psnToken, &PSNToken::PSNTokenSuccess, this, [this, info]() {
-            createSession(info);
-        });
-        connect(psnToken, &PSNToken::Finished, psnToken, &QObject::deleteLater);
-        QString refresh_token = settings->GetPsnRefreshToken();
-        psnToken->RefreshPsnToken(std::move(refresh_token));
-    }
-    else
-        createSession(info);
+    const bool connected = psn_account->whenTokensValid([this, info]() { createSession(info); },
+        [](const QString &error) { qCWarning(logSession) << "Association automatique impossible :" << error; });
+    if(!connected)
+        qCWarning(logSession) << "Association automatique impossible : compte PSN non connecté";
 }
 
 void QmlBackend::finishAutoRegister(const ChiakiRegisteredHost &host)
@@ -1393,38 +1259,19 @@ void QmlBackend::connectToHost(int index, QString nickname)
             setSessionNotice(tr("Playing over the Internet: quality %1, adjusted to your connection").arg(RemoteQualityGuard::presetName(start)));
         }
 
-        QString expiry_s = settings->GetPsnAuthTokenExpiry();
-        QString refresh = settings->GetPsnRefreshToken();
-        if(expiry_s.isEmpty() || refresh.isEmpty())
+        const bool connected = psn_account->whenTokensValid([this, info]() { createSession(info); },
+            [this](const QString &reason) {
+                window->setWindowAdjustable(true);
+                setSessionNotice(QString());
+                emit error(tr("Can't play over the Internet"), reason);
+            });
+        if(!connected)
         {
             qCWarning(logSession) << "Partie par Internet impossible : compte PSN non connecté";
             window->setWindowAdjustable(true);
             setSessionNotice(QString());
             emit error(tr("Can't play over the Internet"), tr("Sign in to your PSN account first: Settings › Remote › Log in to PSN."));
-            return;
         }
-        QDateTime expiry = QDateTime::fromString(expiry_s, settings->GetTimeFormat());
-        // give 1 minute buffer
-        QDateTime now = QDateTime::currentDateTime().addSecs(60);
-        if(now.secsTo(expiry) < 1)
-        {
-            PSNToken *psnToken = new PSNToken(settings, this);
-            connect(psnToken, &PSNToken::PSNTokenError, this, [this](const QString &error) {
-                qCWarning(logSession) << "Jetons PSN non renouvelés, connexion à distance indisponible :" << error;
-            });
-            connect(psnToken, &PSNToken::UnauthorizedError, psn_account, &PsnAccount::forgetCredentials);
-            connect(psnToken, &PSNToken::PSNTokenSuccess, this, []() {
-                qCInfo(logSession) << "Jetons PSN renouvelés";
-            });
-            connect(psnToken, &PSNToken::PSNTokenSuccess, this, [this, info]() {
-                createSession(info);
-            });
-                connect(psnToken, &PSNToken::Finished, psnToken, &QObject::deleteLater);
-            QString refresh_token = settings->GetPsnRefreshToken();
-            psnToken->RefreshPsnToken(std::move(refresh_token));
-        }
-        else
-            createSession(info);
     }
 }
 
@@ -1439,8 +1286,7 @@ QVariantMap QmlBackend::sessionQuality() const
     m["resolution"] = ps5 ? (local ? settings->GetResolutionLocalPS5() : settings->GetResolutionRemotePS5())
                           : (local ? settings->GetResolutionLocalPS4() : settings->GetResolutionRemotePS4());
     // 1080p : PS5, ou PS4 cochée « PS4 Pro »
-    const QStringList pro_hosts = QSettings().value("macnplay/ps4ProHosts").toString().split(",", Qt::SkipEmptyParts);
-    m["allow1080"] = ps5 || pro_hosts.contains(settings->GetActiveConsole());
+    m["allow1080"] = ps5 || settings->GetPs4Pro(settings->GetActiveConsole());
     return m;
 }
 
@@ -1513,6 +1359,52 @@ void QmlBackend::stopSession(bool sleep)
     session->Stop();
 }
 
+// Internet est revenu ? on renouvelle les jetons, puis on relance la partie à distance ;
+// après MAX_PSN_RECONNECT_TRIES échecs, on abandonne
+void QmlBackend::retryPsnAfterOutage()
+{
+    auto give_up = [this] {
+        resume_session = false;
+        psn_reconnect_tries = 0;
+        psn_reconnect_timer->stop();
+        setConnectState(PsnConnectState::ConnectFailed);
+    };
+    if(settings->GetPsnRefreshToken().isEmpty())
+    {
+        qCWarning(logSession) << "Connexion à distance impossible : pas de jeton PSN enregistré";
+        give_up();
+        return;
+    }
+    psn_account->renewTokens([this] {
+        qCInfo(logSession) << "Internet est revenu, jetons PSN renouvelés";
+        resume_session = false;
+        psn_reconnect_tries = 0;
+        psn_reconnect_timer->stop();
+        createSession(session_info);
+    }, [this, give_up](const QString &error) {
+        qCWarning(logSession) << "Internet semble coupé, nouvel essai dans 5 secondes :" << error;
+        if(++psn_reconnect_tries >= MAX_PSN_RECONNECT_TRIES)
+            give_up();
+    });
+}
+
+// les messages Qt ne vont plus dans le journal de la partie (elle se termine)
+void QmlBackend::detachSessionLog()
+{
+    QMutexLocker lock(&chiaki_log_mutex);
+    chiaki_log_ctx = nullptr;
+}
+
+// abandonne la partie en cours (connexion ratée, annulation) sans attendre sa fin normale
+void QmlBackend::discardSession()
+{
+    if (!session)
+        return;
+    detachSessionLog();
+    session->deleteLater();
+    session = nullptr;
+}
+
 void QmlBackend::setSessionNotice(const QString &notice)
 {
     if (session_notice == notice)
@@ -1546,12 +1438,7 @@ void QmlBackend::stopAutoConnect()
         if(wakeup_start)
         {
             wakeup_start = false;
-            chiaki_log_mutex.lock();
-            chiaki_log_ctx = nullptr;
-            chiaki_log_mutex.unlock();
-
-            session->deleteLater();
-            session = nullptr;
+            discardSession();
         }
     }
     emit autoConnectChanged();

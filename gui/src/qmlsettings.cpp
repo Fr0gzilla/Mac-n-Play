@@ -73,6 +73,7 @@ QmlSettings::QmlSettings(Settings *settings, QObject *parent)
         settings->SetDpadTouchShortcut4(0);
     }
     connect(settings, &Settings::RegisteredHostsUpdated, this, &QmlSettings::registeredHostsChanged);
+    connect(settings, &Settings::Ps4ProHostsUpdated, this, &QmlSettings::ps4ProHostsChanged);
     connect(settings, &Settings::ProfilesUpdated, this, &QmlSettings::profilesChanged);
     // les jetons PSN sont écrits par la connexion (PSNAccountID, PSNToken) : prévenir l'interface
     connect(settings, &Settings::PsnTokensUpdated, this, [this] {
@@ -862,6 +863,18 @@ bool QmlSettings::dpadComboClashesWithMenu(uint a, uint b, uint c, uint d) const
 {
     return MacnPlayRules::dpadComboClashesWithMenu({a, b, c, d},
         {settings->GetStreamMenuShortcut1(), settings->GetStreamMenuShortcut2(), settings->GetStreamMenuShortcut3(), settings->GetStreamMenuShortcut4()});
+}
+
+bool QmlSettings::isPs4Pro(const QString &mac) const
+{
+    return settings->GetPs4Pro(mac);
+}
+
+void QmlSettings::setPs4Pro(const QString &mac, bool pro)
+{
+    settings->SetPs4Pro(mac, pro);
+    emit resolutionLocalPS4Changed();
+    emit bitrateLocalPS4Changed();
 }
 
 bool QmlSettings::trySetDpadTouchShortcut(int slot, uint button)
@@ -1956,7 +1969,9 @@ void QmlSettings::setSettings(Settings *new_settings)
     settings = new_settings;
     connect(settings, &Settings::RegisteredHostsUpdated, this, &QmlSettings::registeredHostsChanged);
     connect(settings, &Settings::ProfilesUpdated, this, &QmlSettings::profilesChanged);
+    connect(settings, &Settings::Ps4ProHostsUpdated, this, &QmlSettings::ps4ProHostsChanged);
     refreshAllKeys();
+    emit ps4ProHostsChanged();
 }
 
 QString QmlSettings::activeConsole() const

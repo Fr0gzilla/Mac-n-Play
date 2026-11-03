@@ -859,6 +859,7 @@
 		{ "The return address contains no sign-in code. Try signing in again.", "L'adresse de retour ne contient pas de code de connexion. Reconnectez-vous." },
 		{ "[E] Invalid address: check that you copied and pasted the whole address.", "[E] Adresse invalide : vérifiez que vous avez copié et collé l'adresse en entier." },
 		{ "[E] The pasted address contains no sign-in code.", "[E] L'adresse collée ne contient pas de code de connexion." },
+		{ "Your PSN session has expired: sign in again.", "Votre session PSN a expiré : reconnectez-vous." },
 		{ "ready", "allumée" },
 		{ "standby", "en veille" },
 		{ "unknown", "inconnu" },

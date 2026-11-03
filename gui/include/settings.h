@@ -475,6 +475,9 @@ class Settings : public QObject
 		void DeleteProfile(QString profile);
 
 		QString GetPsnAccountId() const;
+		// PS4 Pro (1080p possible) : la console ne le dit pas, c'est retenu par adresse MAC
+		bool GetPs4Pro(const QString &mac) const;
+		void SetPs4Pro(const QString &mac, bool pro);
 		void SetPsnAccountId(QString account_id);
 
 		QString GetTimeFormat() const     { return time_format; }
@@ -741,6 +744,7 @@ class Settings : public QObject
 	signals:
 		void RegisteredHostsUpdated();
 		void PsnTokensUpdated();
+		void Ps4ProHostsUpdated();
 		void HiddenHostsUpdated();
 		void ManualHostsUpdated();
 		void ControllerMappingsUpdated();
