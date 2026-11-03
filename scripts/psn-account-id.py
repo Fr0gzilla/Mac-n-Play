@@ -49,6 +49,7 @@ import base64
 
 # Remote Play Windows Client
 CLIENT_ID = "ba495a24-818c-472b-b12d-ff231c1b5745"
+# pas un vrai secret : identifiant public de l'appli Remote Play de Sony, le même pour tous
 CLIENT_SECRET = "mvaiZkRsAsI1IBkY"
 
 LOGIN_URL = "https://auth.api.sonyentertainmentnetwork.com/2.0/oauth/authorize?service_entity=urn:service-entity:psn&response_type=code&client_id={}&redirect_uri=https://remoteplay.dl.playstation.net/remoteplay/redirect&scope=psn:clientapp&request_locale=en_US&ui=pr&service_logo=ps&layout_type=popup&smcid=remoteplay&prompt=always&PlatformPrivacyWs1=minimal&".format(CLIENT_ID)

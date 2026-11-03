@@ -20,6 +20,8 @@ class UpdateChecker : public QObject
     Q_PROPERTY(QString latestVersion READ latestVersion NOTIFY changed)
     // page de la version (notes et fichier .dmg)
     Q_PROPERTY(QString pageUrl READ pageUrl NOTIFY changed)
+    // l'utilisateur accepte que l'appli consulte GitHub une fois par jour (réglage enregistré)
+    Q_PROPERTY(bool enabled READ enabled WRITE setEnabled NOTIFY changed)
 
 public:
     explicit UpdateChecker(QObject *parent = nullptr);
@@ -27,6 +29,8 @@ public:
     bool available() const { return is_available && !dismissed; }
     QString latestVersion() const { return latest_version; }
     QString pageUrl() const { return page_url; }
+    bool enabled() const;
+    void setEnabled(bool enabled);
 
     Q_INVOKABLE void checkNow();
     // « Plus tard » : le bandeau disparaît jusqu'au prochain lancement

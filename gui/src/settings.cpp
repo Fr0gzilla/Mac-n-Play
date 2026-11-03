@@ -304,6 +304,10 @@ void Settings::ExportSettings(QString filepath)
     QStringList keys = settings.allKeys();
     for( QStringList::iterator i = keys.begin(); i != keys.end(); i++ )
     {
+        // les jetons du compte PSN donnent accès au compte : jamais dans un fichier exporté
+        // (il suffit de se reconnecter après un import)
+        if(i->startsWith("settings/psn_") || i->startsWith("macnplay/psnProfile"))
+            continue;
         settings_backup.setValue( *i, settings.value( *i ) );
     }
 	// set hw decoder to auto since it's recommended and a platform specific decoder could cause a crash if imported on another platform

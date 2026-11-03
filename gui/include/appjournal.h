@@ -7,6 +7,7 @@
 #pragma once
 
 #include <QObject>
+#include <QStringList>
 #include <QString>
 #include <QtGlobal>
 
@@ -22,19 +23,29 @@ namespace AppJournal
     QString currentPath();
     // dossier qui contient les journaux de l'appli et des parties
     QString folder();
+    // version publiable d'un journal : adresses IP et MAC, identifiants, et les mots privés
+    // donnés (pseudo PSN, noms des consoles) sont remplacés par des repères
+    QString anonymize(const QString &text, const QStringList &private_words);
 }
 
 // Actions sur le journal pour les écrans (« Chiaki.journal ») : Paramètres › Configuration.
+class Settings;
+
 class JournalController : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QString path READ path CONSTANT)
 
 public:
-    using QObject::QObject;
+    JournalController(Settings *settings, QObject *parent = nullptr) : QObject(parent), settings(settings) {}
+    void setSettings(Settings *settings) { this->settings = settings; }
     QString path() const { return AppJournal::currentPath(); }
-    // copie le journal du lancement en cours, à coller dans un ticket GitHub ; false s'il est illisible
+    // copie le journal du lancement en cours, anonymisé, à coller dans un ticket GitHub ;
+    // false s'il est illisible
     Q_INVOKABLE bool copyToClipboard() const;
     // ouvre le dossier des journaux (appli et parties) dans le Finder
     Q_INVOKABLE void openFolder() const;
+
+private:
+    Settings *settings;
 };

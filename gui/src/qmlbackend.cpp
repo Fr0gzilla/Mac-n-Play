@@ -294,7 +294,7 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     qmlRegisterUncreatableType<PsnAccount>(uri, 1, 0, "PsnAccount", {});
     qmlRegisterUncreatableType<ConsoleRegistry>(uri, 1, 0, "ConsoleRegistry", {});
     qmlRegisterUncreatableType<JournalController>(uri, 1, 0, "JournalController", {});
-    journal = new JournalController(this);
+    journal = new JournalController(settings, this);
     qmlRegisterUncreatableType<UpdateChecker>(uri, 1, 0, "UpdateChecker", {});
     updates = new UpdateChecker(this);
     remote_quality = new RemoteQualityGuard(this);
@@ -599,6 +599,7 @@ void QmlBackend::profileChanged()
     consoles->setSettings(settings);
     psn_account->setSettings(settings);
     diagnostic->setSettings(settings);
+    journal->setSettings(settings);
     connect(settings, &Settings::CurrentProfileChanged, this, &QmlBackend::profileChanged);
     settings_qml->setSettings(settings);
     window->setSettings(settings);

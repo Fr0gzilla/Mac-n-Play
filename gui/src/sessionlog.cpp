@@ -13,7 +13,6 @@
 #include <QThread>
 
 static void LogCb(ChiakiLogLevel level, const char *msg, void *user);
-static QString SanitizeLogMessage(const QString &msg);
 
 SessionLog::SessionLog(StreamSession *session, uint32_t level_mask, const QString &filename, bool sanitize)
 	: session(session), shutdown(false), sanitize(sanitize)
@@ -167,7 +166,7 @@ static const QRegularExpression &sanitize_session_id_eq_re()
 	return *re;
 }
 
-static QString SanitizeLogMessage(const QString &msg)
+QString SanitizeLogMessage(const QString &msg)
 {
 	QString sanitized = msg;
 

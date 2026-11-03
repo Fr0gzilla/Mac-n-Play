@@ -6,6 +6,7 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
+#include <QSettings>
 
 // ce lien renvoie vers la page de la dernière version publiée (…/releases/tag/v1.2.3).
 // On lit l'adresse d'arrivée plutôt que l'API de GitHub, limitée à 60 demandes par heure
@@ -14,6 +15,8 @@ static const char *LATEST_RELEASE_URL = "https://github.com/Fr0gzilla/Mac-n-Play
 // première vérification peu après le lancement, pour ne pas ralentir le démarrage
 static const int FIRST_CHECK_DELAY_MS = 8000;
 static const int CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
+// réglage « vérifier les nouvelles versions » (activé par défaut)
+static const char *ENABLED_KEY = "macnplay/checkUpdates";
 
 UpdateChecker::UpdateChecker(QObject *parent)
     : QObject(parent), network(new QNetworkAccessManager(this))
@@ -23,8 +26,25 @@ UpdateChecker::UpdateChecker(QObject *parent)
     QTimer::singleShot(FIRST_CHECK_DELAY_MS, this, &UpdateChecker::checkNow);
 }
 
+bool UpdateChecker::enabled() const
+{
+    return QSettings().value(ENABLED_KEY, true).toBool();
+}
+
+void UpdateChecker::setEnabled(bool value)
+{
+    QSettings().setValue(ENABLED_KEY, value);
+    if(!value && is_available)
+        is_available = false;
+    emit changed();
+    if(value)
+        checkNow();
+}
+
 void UpdateChecker::checkNow()
 {
+    if(!enabled())
+        return;
     QNetworkRequest request{QUrl(QString::fromLatin1(LATEST_RELEASE_URL))};
     request.setRawHeader("User-Agent", QString("MacnPlay/%1").arg(QCoreApplication::applicationVersion()).toUtf8());
     // on veut seulement l'adresse de redirection, pas la page

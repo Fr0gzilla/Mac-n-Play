@@ -18,7 +18,7 @@ Décrivez ce que vous faisiez et ce qui s'est produit (message d'erreur, écran 
 - Connexion : même réseau que la console, ou à distance ?
 
 **Journal**
-Paramètres › Configuration › **Copier le journal**, puis collez-le ici :
+Paramètres › Configuration › **Copier le journal**, puis collez-le ici. La copie masque déjà les adresses, les identifiants, votre pseudo PSN et le nom de vos consoles : relisez-la quand même avant d'envoyer, ce ticket est public.
 
 ```
 (collez le journal ici)

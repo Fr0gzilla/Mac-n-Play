@@ -35,6 +35,8 @@ class SessionLog
 		void PrepareShutdown();
 };
 
+// masque adresses IP, identifiants de compte, de console et de session dans un message
+QString SanitizeLogMessage(const QString &msg);
 QString GetLogBaseDir();
 QString CreateLogFilename();
 

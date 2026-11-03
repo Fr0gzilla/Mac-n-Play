@@ -73,6 +73,11 @@ Item {
             Material.roundedScale: Material.SmallScale
         }
 
+        Label {
+            text: qsTr("The exported file contains your console pairings (not your PSN account): keep it to yourself.")
+            opacity: 0.6
+        }
+
         C.Button {
             id: importButton
             text: qsTr("Import settings from file")
@@ -99,6 +104,12 @@ Item {
                 text: qsTr("Verbose Logging (unchecked)")
                 checked: Chiaki.settings.logVerbose
                 onToggled: Chiaki.settings.logVerbose = checked
+            }
+
+            C.CheckBox {
+                text: qsTr("Check for new versions (once a day, on GitHub)")
+                checked: Chiaki.updates.enabled
+                onToggled: Chiaki.updates.enabled = checked
             }
 
             // diagnostic : vérifie le réseau, Internet, le compte PSN et la console, et l'explique
@@ -146,7 +157,7 @@ Item {
             // journal de l'appli : à joindre à un ticket quand quelque chose ne marche pas
             Label {
                 Layout.topMargin: 10
-                text: qsTr("If something goes wrong, copy the journal and paste it into your report on GitHub.")
+                text: qsTr("If something goes wrong, copy the journal and paste it into your report on GitHub. The copy hides addresses, identifiers, your PSN name and console names.")
                 opacity: 0.6
             }
             RowLayout {

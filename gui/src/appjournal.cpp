@@ -1,5 +1,9 @@
 #include "appjournal.h"
 #include "sessionlog.h"
+#include "settings.h"
+
+#include <QRegularExpression>
+#include <QSettings>
 
 #include <QClipboard>
 #include <QDateTime>
@@ -81,12 +85,39 @@ QString AppJournal::folder()
     return GetLogBaseDir();
 }
 
+QString AppJournal::anonymize(const QString &text, const QStringList &private_words)
+{
+    static const QRegularExpression mac_plain(QStringLiteral("\\b[0-9A-Fa-f]{12}\\b"));
+    static const QRegularExpression mac_colons(QStringLiteral("\\b(?:[0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}\\b"));
+    QStringList lines = text.split(u'\n');
+    for(QString &line : lines)
+    {
+        line = SanitizeLogMessage(line);
+        line.replace(mac_colons, QStringLiteral("<adresse-mac>"));
+        line.replace(mac_plain, QStringLiteral("<adresse-mac>"));
+        for(const QString &word : private_words)
+        {
+            if(word.size() >= 3)
+                line.replace(word, QStringLiteral("<nom>"), Qt::CaseInsensitive);
+        }
+    }
+    return lines.join(u'\n');
+}
+
 bool JournalController::copyToClipboard() const
 {
     QFile file(AppJournal::currentPath());
     if(file.fileName().isEmpty() || !file.open(QIODevice::ReadOnly | QIODevice::Text))
         return false;
-    QGuiApplication::clipboard()->setText(QString::fromUtf8(file.readAll()));
+    // le journal est fait pour être collé dans un ticket public : pseudo et noms des consoles masqués
+    QStringList private_words;
+    if(settings)
+    {
+        for(const auto &host : settings->GetRegisteredHosts())
+            private_words << host.GetServerNickname();
+    }
+    private_words << QSettings().value("macnplay/psnProfile").toMap().value("onlineId").toString();
+    QGuiApplication::clipboard()->setText(AppJournal::anonymize(QString::fromUtf8(file.readAll()), private_words));
     return true;
 }
 

@@ -28,7 +28,7 @@ Mac'n'Play affiche l'écran de votre PlayStation sur votre Mac (Remote Play) et 
 - **Assistant d'ajout de console** en trois étapes, avec les explications à chaque écran.
 - **Jeu hors de chez soi** par Internet : la qualité s'adapte toute seule à la connexion (par exemple 360p sur un partage de connexion de téléphone) et baisse d'un cran si l'image saccade.
 - **« Tester ma connexion »** : l'appli vérifie le réseau du Mac, Internet, le compte PSN et la console, et explique en clair ce qui ne va pas.
-- **Nouvelles versions signalées** sur l'accueil, avec un bouton pour les télécharger.
+- **Nouvelles versions signalées** sur l'accueil, avec un bouton pour les télécharger (l'appli consulte GitHub une fois par jour ; désactivable dans Paramètres › Configuration).
 - **Journal** à copier en un clic pour signaler un problème.
 - En français ou en anglais, selon la langue de votre Mac.
 
