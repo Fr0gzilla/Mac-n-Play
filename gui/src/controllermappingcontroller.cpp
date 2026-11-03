@@ -102,7 +102,6 @@ void ControllerMappingController::controllerOpened(Controller *opened)
 	}
 
 	connect(opened, &Controller::UpdatingControllerMapping, this, &ControllerMappingController::startWith);
-	connect(opened, &Controller::NewButtonMapping, this, &ControllerMappingController::onButtonPressedWhileSelecting);
 }
 
 void ControllerMappingController::controllerClosed(int closed_device_id)
@@ -309,7 +308,7 @@ void ControllerMappingController::startWith(Controller *chosen)
 	{
 		controller_type = chosen->GetType();
 		if(controller_type.isEmpty())
-			controller_type = QString("Unidentified Controller");
+			controller_type = tr("Unidentified Controller");
 	}
 	for(const QString &field : std::as_const(fields))
 	{
@@ -330,58 +329,6 @@ void ControllerMappingController::startWith(Controller *chosen)
 	emit controllerTypeChanged();
 	emit mappingChanged();
 	setInProgress(true);
-}
-
-void ControllerMappingController::onButtonPressedWhileSelecting(QString button)
-{
-	if(!in_progress || !controller)
-		return;
-	emit buttonSelected(std::move(button));
-}
-
-void ControllerMappingController::selectButton()
-{
-	if(in_progress && controller)
-		controller->IsUpdatingMappingButton(true);
-}
-
-void ControllerMappingController::stopSelectingButton()
-{
-	if(in_progress && controller)
-		controller->IsUpdatingMappingButton(false);
-}
-
-void ControllerMappingController::updateButton(int chiaki_button, QString physical_button, int new_index)
-{
-	const QString action = ChiakiButtonSdlNames().value(chiaki_button);
-	const QString old_action = physical_to_action.value(physical_button);
-	if(action == old_action)
-		return;
-	if(!old_action.isEmpty())
-	{
-		QStringList old_buttons = current_mappings.value(old_action);
-		if(old_buttons.length() > 1)
-		{
-			old_buttons.removeOne(physical_button);
-			current_mappings.insert(old_action, old_buttons);
-		}
-		else
-			current_mappings.remove(old_action);
-	}
-	QStringList new_buttons = current_mappings.value(action);
-	if(new_buttons.length() > new_index)
-	{
-		physical_to_action.insert(new_buttons.at(new_index), QString());
-		new_buttons.remove(new_index);
-	}
-	if(new_index == 0)
-		new_buttons.prepend(physical_button);
-	else
-		new_buttons.append(physical_button);
-	current_mappings.insert(action, new_buttons);
-	physical_to_action.insert(physical_button, action);
-	setAltered(current_mappings != applied_mappings);
-	emit mappingChanged();
 }
 
 // le bouton physique fait désormais l'action chiaki_button (0 = rien) ;

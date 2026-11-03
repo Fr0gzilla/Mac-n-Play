@@ -140,14 +140,14 @@ bool PsnAccount::handleLoginRedirect(const QUrl &url)
     if(!isRedirectUrl(url))
     {
         qCWarning(logPsn) << "Connexion : adresse de retour inattendue" << url.host();
-        emit loginFailed(QString("Redirect URL invalid does not start with:\n") + QString::fromStdString(PSNAuth::REDIRECT_PAGE));
+        emit loginFailed(tr("The return address is not the expected Sony page:\n%1").arg(QString::fromStdString(PSNAuth::REDIRECT_PAGE)));
         return false;
     }
     const QString code = QUrlQuery(url).queryItemValue("code");
     if(code.isEmpty())
     {
         qCWarning(logPsn) << "Connexion : l'adresse de retour ne contient pas de code";
-        emit loginFailed("Redirect URL invalid");
+        emit loginFailed(tr("The return address contains no sign-in code. Try signing in again."));
         return false;
     }
     exchangeCode(code, QJSValue());
@@ -160,7 +160,7 @@ void PsnAccount::loginWithRedirect(const QUrl &url, const QJSValue &callback)
     {
         qCWarning(logPsn) << "Connexion : adresse collée invalide";
         if(callback.isCallable())
-            callback.call({QString("[E] Invalid URL: Please make sure you have copy and pasted the URL correctly."), false, true});
+            callback.call({tr("[E] Invalid address: check that you copied and pasted the whole address."), false, true});
         return;
     }
     const QString code = QUrlQuery(url).queryItemValue("code");
@@ -168,7 +168,7 @@ void PsnAccount::loginWithRedirect(const QUrl &url, const QJSValue &callback)
     {
         qCWarning(logPsn) << "Connexion : l'adresse collée ne contient pas de code";
         if(callback.isCallable())
-            callback.call({QString("[E] Invalid code from redirect url."), false, true});
+            callback.call({tr("[E] The pasted address contains no sign-in code."), false, true});
         return;
     }
     exchangeCode(code, callback);

@@ -220,10 +220,8 @@ static bool frame_can_use_direct_render(const AVFrame *frame, bool use_opengl_re
     }
 }
 
-#define PSN_DEVICES_TRIES 2
 #define MAX_PSN_RECONNECT_TRIES 6
 #define PSN_INTERNET_WAIT_SECONDS 5
-#define WAKEUP_PSN_IGNORE_SECONDS 10
 #define WAKEUP_WAIT_SECONDS 25
 static QMutex chiaki_log_mutex;
 static ChiakiLog *chiaki_log_ctx = nullptr;
@@ -232,12 +230,10 @@ static QtMessageHandler qt_msg_handler = nullptr;
 static void msg_handler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
     AppJournal::write(type, context, msg);
-    QMutexLocker lock(&chiaki_log_mutex);
-    if (!chiaki_log_ctx) {
+    // la console macOS (Console.app, terminal) reçoit toujours les messages, partie ou non
+    if (qt_msg_handler)
         qt_msg_handler(type, context, msg);
-        return;
-    }
-    ChiakiLogLevel chiaki_level;
+    ChiakiLogLevel chiaki_level = CHIAKI_LOG_INFO;
     switch (type) {
     case QtDebugMsg:
         chiaki_level = CHIAKI_LOG_DEBUG;
@@ -249,13 +245,14 @@ static void msg_handler(QtMsgType type, const QMessageLogContext &context, const
         chiaki_level = CHIAKI_LOG_WARNING;
         break;
     case QtCriticalMsg:
-        chiaki_level = CHIAKI_LOG_ERROR;
-        break;
     case QtFatalMsg:
         chiaki_level = CHIAKI_LOG_ERROR;
         break;
     }
-    chiaki_log(chiaki_log_ctx, chiaki_level, "%s", qPrintable(msg));
+    // pendant une partie, le message rejoint aussi le journal de la partie
+    QMutexLocker lock(&chiaki_log_mutex);
+    if (chiaki_log_ctx)
+        chiaki_log(chiaki_log_ctx, chiaki_level, "%s", qPrintable(msg));
 }
 
 // préréglage de la bibliothèque (1 = 360p … 4 = 1080p) d'après la hauteur de l'image
@@ -402,7 +399,7 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
         });
         connect(psnToken, &PSNToken::UnauthorizedError, psn_account, &PsnAccount::forgetCredentials);
         connect(psnToken, &PSNToken::PSNTokenSuccess, this, [this]() {
-            qCWarning(logSession) << "Internet est revenu, jetons PSN renouvelés";
+            qCInfo(logSession) << "Internet est revenu, jetons PSN renouvelés";
             resume_session = false;
             psn_reconnect_tries = 0;
             psn_reconnect_timer->stop();
@@ -653,7 +650,7 @@ void QmlBackend::profileChanged()
         });
         connect(psnToken, &PSNToken::UnauthorizedError, psn_account, &PsnAccount::forgetCredentials);
         connect(psnToken, &PSNToken::PSNTokenSuccess, this, []() {
-            qCWarning(logSession) << "Internet est revenu, jetons PSN renouvelés";
+            qCInfo(logSession) << "Internet est revenu, jetons PSN renouvelés";
         });
         connect(psnToken, &PSNToken::PSNTokenSuccess, this, [this]() {
             resume_session = false;
@@ -1251,7 +1248,7 @@ void QmlBackend::autoRegister()
         });
         connect(psnToken, &PSNToken::UnauthorizedError, psn_account, &PsnAccount::forgetCredentials);
         connect(psnToken, &PSNToken::PSNTokenSuccess, this, []() {
-            qCWarning(logSession) << "Jetons PSN renouvelés";
+            qCInfo(logSession) << "Jetons PSN renouvelés";
         });
         connect(psnToken, &PSNToken::PSNTokenSuccess, this, [this, info]() {
             createSession(info);
@@ -1417,7 +1414,7 @@ void QmlBackend::connectToHost(int index, QString nickname)
             });
             connect(psnToken, &PSNToken::UnauthorizedError, psn_account, &PsnAccount::forgetCredentials);
             connect(psnToken, &PSNToken::PSNTokenSuccess, this, []() {
-                qCWarning(logSession) << "Jetons PSN renouvelés";
+                qCInfo(logSession) << "Jetons PSN renouvelés";
             });
             connect(psnToken, &PSNToken::PSNTokenSuccess, this, [this, info]() {
                 createSession(info);

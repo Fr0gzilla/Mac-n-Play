@@ -111,7 +111,8 @@ namespace MacnPlayRules
     constexpr int PRESET_720P = 3;
 
     // adresse IPv4 (en nombre) donnée par un partage de connexion de téléphone :
-    // iPhone 172.20.10.0/28, Android 192.168.43.0/24
+    // iPhone 172.20.10.0/28 (fiable) ; Android 192.168.43.0/24, mais seulement jusqu'à
+    // Android 10 : depuis Android 11 le réseau est tiré au hasard et n'est pas reconnu
     inline bool isPhoneHotspotAddress(uint32_t ipv4)
     {
         return (ipv4 & 0xFFFFFFF0u) == 0xAC140A00u    // 172.20.10.0/28

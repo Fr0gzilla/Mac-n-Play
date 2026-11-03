@@ -64,9 +64,6 @@ public:
     Q_INVOKABLE void apply();
     Q_INVOKABLE void reset();
     Q_INVOKABLE void quit();
-    Q_INVOKABLE void selectButton();
-    Q_INVOKABLE void stopSelectingButton();
-    Q_INVOKABLE void updateButton(int chiaki_button, QString physical_button, int new_index);
 
     // boutons physiques de la manette en cours de réglage, avec l'action de chacun (0 = aucune)
     Q_INVOKABLE QVariantList physicalButtons() const;
@@ -84,13 +81,11 @@ signals:
     void defaultMappingChanged();
     void alteredChanged();
     void analogStickMappingChanged();
-    void buttonSelected(QString button);
     void steamControllerSelected();
     void navButtonCaptured(uint button);
 
 private:
     void startWith(Controller *controller);
-    void onButtonPressedWhileSelecting(QString button);
     void setWaitingForController(bool waiting);
     void setInProgress(bool value);
     void setDefaultMapping(bool value);
