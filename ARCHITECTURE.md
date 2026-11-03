@@ -175,5 +175,5 @@ Steam Deck, Nintendo Switch, artwork Steam et documentation de chiaki-ng. On les
 - **Une classe, un rôle** : si une classe doit faire autre chose, on crée un nouveau contrôleur.
 - **Pas de règle métier dans le QML** : une vue affiche et transmet. Une règle va dans un contrôleur, et si possible dans `MacnPlayRules`, avec un test.
 - **Chaque fichier commence par un commentaire** qui dit son rôle.
-- **Les noms disent ce que fait le code** (`consoleAt`, `markWaking`, `forgetCredentials`). Les commentaires expliquent *pourquoi*, pas *quoi*.
+- **Les noms disent ce que fait le code** (`consoleByKey`, `markWaking`, `forgetCredentials`). Les commentaires expliquent *pourquoi*, pas *quoi*.
 - **Journaliser les étapes importantes** avec la catégorie du domaine (`qCInfo(logConsoles) << …`), en français.
