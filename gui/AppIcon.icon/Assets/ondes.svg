@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="onde" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffb08a"/>
+      <stop offset="1" stop-color="#ff4f7b"/>
+    </linearGradient>
+  </defs>
+  <g fill="none" stroke-linecap="round">
+    <path d="M318 290 A270 270 0 0 1 706 290" stroke="url(#onde)" stroke-width="46" opacity="0.6"/>
+    <path d="M392 360 A170 170 0 0 1 632 360" stroke="url(#onde)" stroke-width="46"/>
+    <circle cx="512" cy="428" r="31" fill="url(#onde)" stroke="none"/>
+  </g>
+</svg>

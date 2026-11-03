@@ -65,6 +65,22 @@ jobs:
           cmake --build build --config Release --target macnplay-rules-test
           ctest --test-dir build --output-on-failure -R macnplay-rules
 
+      - name: Icône au format macOS 26
+        run: |
+          # l'icône « Liquid Glass » (gui/AppIcon.icon, format Icon Composer) se compile avec
+          # l'outil actool de Xcode 26 ; sans lui, l'appli garde l'icône à l'ancien format
+          XC=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          if [[ -z "$XC" ]]; then
+            echo "::warning::Xcode 26 absent : icône à l'ancien format"
+            exit 0
+          fi
+          echo "Xcode utilisé : $XC"
+          mkdir -p icon-out
+          DEVELOPER_DIR="$XC/Contents/Developer" xcrun actool gui/AppIcon.icon --compile icon-out \
+            --app-icon AppIcon --enable-on-demand-resources NO --platform macosx --target-device mac \
+            --minimum-deployment-target 15.0 --output-partial-info-plist icon-out/partial.plist
+          ls -la icon-out
+
       - name: Package
         run: |
           APP="Mac'n'Play.app"
@@ -91,6 +107,12 @@ jobs:
             install_name_tool -change "$old" @executable_path/libSDL2-2.0.0.dylib "$APP/Contents/MacOS/chiaki" || true
           done
           ln -s libvulkan.1.dylib "$APP/Contents/Frameworks/vulkan"
+          # icône macOS 26 : Assets.car + son nom dans Info.plist (l'ancienne .icns reste pour macOS 15)
+          if [[ -f icon-out/Assets.car ]]; then
+            cp icon-out/Assets.car "$APP/Contents/Resources/"
+            /usr/libexec/PlistBuddy -c "Add :CFBundleIconName string AppIcon" "$APP/Contents/Info.plist" \
+              || /usr/libexec/PlistBuddy -c "Set :CFBundleIconName AppIcon" "$APP/Contents/Info.plist"
+          fi
           codesign --force --entitlements gui/entitlements.xml --deep --sign - "$APP"
           # fenêtre d'installation : l'appli et un raccourci vers Applications
           mkdir dmg && cp -a "$APP" dmg/ && ln -s /Applications dmg/Applications

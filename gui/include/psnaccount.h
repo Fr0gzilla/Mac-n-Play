@@ -16,6 +16,7 @@
 #include <QVariantMap>
 
 class Settings;
+class QNetworkAccessManager;
 #ifdef CHIAKI_HAVE_WEBENGINE
 class QQuickWebEngineProfile;
 class SecUaRequestInterceptor;
@@ -68,10 +69,16 @@ signals:
 
 private:
     void exchangeCode(const QString &code, const QJSValue &callback);
+    // la carte du compte (profil et avatar) est enregistrée sur le Mac pour s'afficher hors ligne
+    void loadCachedProfile();
+    void storeProfile(QVariantMap profile);
+    void downloadAvatar(const QString &url);
+    void clearProfile();
 
     Settings *settings;
     QVariantMap current_profile;
     QTimer profile_timer;
+    QNetworkAccessManager *network = nullptr;
 #ifdef CHIAKI_HAVE_WEBENGINE
     SecUaRequestInterceptor *request_interceptor = nullptr;
 #endif

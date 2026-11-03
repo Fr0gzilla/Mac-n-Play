@@ -201,7 +201,8 @@ int real_main(int argc, char *argv[])
 		app.installTranslator(new FrenchTranslator(&app));
 
 #ifdef Q_OS_MACOS
-	QGuiApplication::setWindowIcon(QIcon(":/icons/relais.svg"));
+	// sur Mac, le Dock prend l'icône de l'appli elle-même (Assets.car ou .icns) :
+	// la remplacer ici l'empêcherait d'afficher l'icône « Liquid Glass » de macOS 26
 #else
 	QGuiApplication::setWindowIcon(QIcon(":/icons/chiaking.svg"));
 #endif

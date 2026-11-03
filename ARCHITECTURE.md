@@ -31,6 +31,9 @@ flowchart LR
         CC[ConnectedControllers<br/>« Chiaki.controllers »]
         CM[ControllerMappingController<br/>« Chiaki.controllerMapping »]
         JC[JournalController<br/>« Chiaki.journal »]
+        UC[UpdateChecker<br/>« Chiaki.updates »]
+        CD[ConnectionDiagnostic<br/>« Chiaki.diagnostic »]
+        RQ[RemoteQualityGuard]
         QS[QmlSettings<br/>« Chiaki.settings »]
     end
 
@@ -43,7 +46,11 @@ flowchart LR
     end
 
     MV & TB & PP & SD & RD & SM --> QB
-    QB --> CR & PA & CC & CM & JC & QS
+    QB --> CR & PA & CC & CM & JC & QS & UC & CD & RQ
+    UC --> GH[[GitHub]]
+    CD --> CR
+    RQ --> SS
+    RQ --> RU
     CR --> ST & DM
     CR --> RU
     PA --> ST & SONY
@@ -69,6 +76,10 @@ Les écrans n'appellent jamais directement un modèle : ils passent toujours par
 | `ConnectedControllers` | `Chiaki.controllers` | Les manettes branchées et la combinaison du menu en jeu |
 | `ControllerMappingController` | `Chiaki.controllerMapping` | L'attribution des boutons d'une manette |
 | `JournalController` | `Chiaki.journal` | Copier le journal, ouvrir son dossier |
+| `UpdateChecker` | `Chiaki.updates` | Savoir si une version plus récente est publiée sur GitHub |
+| `ConnectionDiagnostic` | `Chiaki.diagnostic` | « Tester ma connexion » : réseau, Internet, compte PSN, console |
+| `RemoteQualityGuard` | (interne) | Qualité des parties par Internet : départ adapté, baisse si l'image perd des morceaux |
+| `SingleInstance` | (interne) | Une seule copie de l'appli à la fois |
 | `QmlSettings` | `Chiaki.settings` | Lire et modifier les réglages, réglages par console |
 
 ### Modèles
@@ -135,7 +146,11 @@ Les règles métier sont dans `gui/include/macnplayrules.h` et vérifiées par `
 - 2 consoles au maximum ;
 - masque d'une combinaison de boutons (l'ordre ne compte pas) ;
 - refus d'une combinaison « pavé tactile » identique à celle du menu en jeu ;
-- renouvellement des jetons PSN une minute avant leur expiration.
+- renouvellement des jetons PSN une minute avant leur expiration ;
+- comparaison des numéros de version (1.0.10 est plus récent que 1.0.9) ;
+- reconnaissance d'un partage de connexion de téléphone ;
+- qualité de départ d'une partie par Internet, et baisse quand les pertes durent ;
+- nom affiché de la PS4 du compte (« PS4-955 » plutôt que « Main PS4 Console »).
 
 Ils tournent à chaque fabrication sur GitHub. En local :
 

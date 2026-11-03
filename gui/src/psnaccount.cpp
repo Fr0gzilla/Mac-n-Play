@@ -8,7 +8,15 @@
 
 #include "chiaki/remote/holepunch.h"
 
+#include <QCryptographicHash>
 #include <QDateTime>
+#include <QDir>
+#include <QFileInfo>
+#include <QFile>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
+#include <QSettings>
+#include <QStandardPaths>
 #include <QDesktopServices>
 #include <QJsonArray>
 #include <QJsonObject>
@@ -45,6 +53,26 @@ private:
 // le profil (statut en ligne, trophées, jeu en cours) est relu régulièrement
 static const int PROFILE_REFRESH_MS = 5 * 60 * 1000;
 
+// la carte du compte est gardée sur le Mac : elle s'affiche dès le lancement, même hors ligne
+static const char *CACHED_PROFILE_KEY = "macnplay/psnProfile";
+
+// un fichier par adresse d'avatar : si l'utilisateur change d'avatar, le nom change aussi
+static QString CachedAvatarPath(const QString &avatar_url)
+{
+    const QString id = QCryptographicHash::hash(avatar_url.toUtf8(), QCryptographicHash::Sha1).toHex().left(12);
+    return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/psn-avatar-" + id + ".img";
+}
+
+static void RemoveCachedAvatars(const QString &keep = QString())
+{
+    QDir dir(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation));
+    for(const QString &name : dir.entryList({ "psn-avatar-*.img" }, QDir::Files))
+    {
+        if(dir.absoluteFilePath(name) != keep)
+            dir.remove(name);
+    }
+}
+
 // adresse du profil PSN : pseudo, avatar, PS Plus, trophées et activité en cours
 static const char *PROFILE_URL = "https://us-prof.np.community.playstation.net/userProfile/v1/users/me/profile2"
     "?fields=onlineId,avatarUrls,plus,trophySummary(@default,level,progress,earnedTrophies),presences(@titleInfo)&avatarSizes=xl";
@@ -52,6 +80,7 @@ static const char *PROFILE_URL = "https://us-prof.np.community.playstation.net/u
 PsnAccount::PsnAccount(Settings *settings, QObject *parent)
     : QObject(parent), settings(settings)
 {
+    loadCachedProfile();
     connect(this, &PsnAccount::tokensReady, this, &PsnAccount::fetchProfile);
     // refresh() renouvelle les jetons s'ils expirent, puis relit le profil
     connect(&profile_timer, &QTimer::timeout, this, &PsnAccount::refresh);
@@ -169,11 +198,7 @@ void PsnAccount::forgetCredentials()
     settings->SetPsnAuthToken(QString());
     settings->SetPsnAuthTokenExpiry(QString());
     settings->SetPsnAccountId(QString());
-    if(!current_profile.isEmpty())
-    {
-        current_profile.clear();
-        emit profileChanged();
-    }
+    clearProfile();
     emit credentialsExpired();
 }
 
@@ -194,11 +219,8 @@ void PsnAccount::fetchProfile()
     const QString token = settings->GetPsnAuthToken();
     if(token.isEmpty())
     {
-        if(!current_profile.isEmpty())
-        {
-            current_profile.clear();
-            emit profileChanged();
-        }
+        // plus de compte connecté : la carte enregistrée n'a plus lieu d'être
+        clearProfile();
         return;
     }
     auto *requester = new JsonRequester(this);
@@ -229,12 +251,12 @@ void PsnAccount::fetchProfile()
         m["bronze"] = earned.value("bronze").toInt();
         m["online"] = presence.value("onlineStatus").toString() == "online";
         m["game"] = presence.value("titleName").toString();
-        current_profile = m;
         qCInfo(logPsn) << "Profil reçu pour" << m["onlineId"].toString();
-        emit profileChanged();
+        storeProfile(m);
     });
     connect(requester, &JsonRequester::requestError, this, [requester](const QString &, const QString &error, const QNetworkReply::NetworkError &) {
-        qCWarning(logPsn) << "Profil : demande échouée :" << error;
+        // on garde la carte enregistrée : elle reste affichée avec ses dernières valeurs
+        qCWarning(logPsn) << "Profil : demande échouée, la carte enregistrée reste affichée :" << error;
         requester->deleteLater();
     });
     requester->makeGetRequest(PROFILE_URL, JsonRequester::generateBearerAuthHeader(token));
@@ -278,3 +300,74 @@ void PsnAccount::setWebEngineHints(QQuickWebEngineProfile *profile)
     profile->setUrlRequestInterceptor(request_interceptor);
 }
 #endif
+
+void PsnAccount::loadCachedProfile()
+{
+    QVariantMap cached = QSettings().value(CACHED_PROFILE_KEY).toMap();
+    if(cached.isEmpty())
+        return;
+    // statut d'avant : on ne sait pas encore s'il est en ligne
+    cached["online"] = false;
+    cached["game"] = QString();
+    const QString avatar_file = CachedAvatarPath(cached.value("avatarUrl").toString());
+    if(QFile::exists(avatar_file))
+        cached["avatar"] = QUrl::fromLocalFile(avatar_file).toString();
+    current_profile = cached;
+    qCInfo(logPsn) << "Carte du compte enregistrée chargée pour" << cached["onlineId"].toString();
+    emit profileChanged();
+}
+
+void PsnAccount::storeProfile(QVariantMap profile)
+{
+    const QString remote_avatar = profile["avatar"].toString();
+    profile["avatarUrl"] = remote_avatar;
+    // avatar déjà enregistré : on l'affiche depuis le Mac, sinon on le télécharge
+    const QString avatar_file = CachedAvatarPath(remote_avatar);
+    const bool have_avatar = !remote_avatar.isEmpty() && QFile::exists(avatar_file);
+    if(have_avatar)
+        profile["avatar"] = QUrl::fromLocalFile(avatar_file).toString();
+    current_profile = profile;
+    QSettings().setValue(CACHED_PROFILE_KEY, profile);
+    emit profileChanged();
+    if(!remote_avatar.isEmpty() && !have_avatar)
+        downloadAvatar(remote_avatar);
+}
+
+void PsnAccount::downloadAvatar(const QString &url)
+{
+    if(!network)
+        network = new QNetworkAccessManager(this);
+    QNetworkReply *reply = network->get(QNetworkRequest(QUrl(url)));
+    connect(reply, &QNetworkReply::finished, this, [this, reply, url] {
+        reply->deleteLater();
+        if(reply->error() != QNetworkReply::NoError)
+        {
+            qCWarning(logPsn) << "Avatar : téléchargement impossible :" << reply->errorString();
+            return;
+        }
+        const QString avatar_file = CachedAvatarPath(url);
+        QDir().mkpath(QFileInfo(avatar_file).absolutePath());
+        QFile file(avatar_file);
+        if(!file.open(QIODevice::WriteOnly) || file.write(reply->readAll()) <= 0)
+            return;
+        file.close();
+        RemoveCachedAvatars(avatar_file);
+        qCInfo(logPsn) << "Avatar enregistré sur le Mac";
+        if(current_profile.value("avatarUrl").toString() != url)
+            return;
+        current_profile["avatar"] = QUrl::fromLocalFile(avatar_file).toString();
+        QSettings().setValue(CACHED_PROFILE_KEY, current_profile);
+        emit profileChanged();
+    });
+}
+
+void PsnAccount::clearProfile()
+{
+    QSettings().remove(CACHED_PROFILE_KEY);
+    RemoveCachedAvatars();
+    if(current_profile.isEmpty())
+        return;
+    current_profile.clear();
+    qCInfo(logPsn) << "Carte du compte effacée (compte déconnecté)";
+    emit profileChanged();
+}
