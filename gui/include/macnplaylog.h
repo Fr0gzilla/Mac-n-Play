@@ -9,3 +9,10 @@ Q_DECLARE_LOGGING_CATEGORY(logPsn)         // compte PlayStation Network : conne
 Q_DECLARE_LOGGING_CATEGORY(logConsoles)    // consoles : découverte, association, réveil, masquage
 Q_DECLARE_LOGGING_CATEGORY(logSession)     // partie en cours : lancement, arrêt, qualité
 Q_DECLARE_LOGGING_CATEGORY(logController)  // manettes : branchement, attribution des boutons
+
+#include <chiaki/log.h>
+
+// pour la bibliothèque Chiaki (en C) : ses messages rejoignent le journal dans la catégorie
+// donnée en « user » (un pointeur vers une des catégories ci-dessus), par exemple
+//   chiaki_log_init(&log, mask, ChiakiLogToJournal, const_cast<QLoggingCategory *>(&logConsoles()));
+void ChiakiLogToJournal(ChiakiLogLevel level, const char *msg, void *user);

@@ -3,6 +3,7 @@
 #include <discoverymanager.h>
 #include <exception.h>
 #include <settings.h>
+#include "macnplaylog.h"
 
 #include <cstring>
 
@@ -38,7 +39,7 @@ static void DiscoveryServiceHostsManualCallback(ChiakiDiscoveryHost *hosts, size
 
 DiscoveryManager::DiscoveryManager(QObject *parent) : QObject(parent)
 {
-	chiaki_log_init(&log, CHIAKI_LOG_ALL & ~CHIAKI_LOG_VERBOSE, chiaki_log_cb_print, nullptr);
+	chiaki_log_init(&log, CHIAKI_LOG_ALL & ~CHIAKI_LOG_VERBOSE, ChiakiLogToJournal, const_cast<QLoggingCategory *>(&logConsoles()));
 
 	service_active = false;
 	service_active_ipv6 = false;

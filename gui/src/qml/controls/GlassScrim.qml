@@ -1,3 +1,4 @@
+// Voile sombre derrière une fenêtre ouverte.
 import QtQuick
 import QtQuick.Effects
 

@@ -1,3 +1,4 @@
+// Fond en verre translucide des fenêtres.
 import QtQuick
 
 // Fond « verre » commun aux fenêtres : teinte sombre translucide, liseré clair et reflet en haut

@@ -559,6 +559,9 @@ public:
     uint16_t dpadTouchIncrement() const;
     void setDpadTouchIncrement(uint16_t increment);
 
+    // change un bouton de la combinaison « pavé tactile » ; refusé (false) si elle deviendrait
+    // identique à celle du menu en jeu, car ouvrir le menu basculerait aussi la croix
+    Q_INVOKABLE bool trySetDpadTouchShortcut(int slot, uint button);
     uint dpadTouchShortcut1() const;
     void setDpadTouchShortcut1(uint button);
 
@@ -774,6 +777,7 @@ signals:
     void placeboChanged();
 
 private:
+    bool dpadComboClashesWithMenu(uint a, uint b, uint c, uint d) const;
     Settings *settings = {};
     QStringList audio_in_devices;
     QStringList audio_out_devices;

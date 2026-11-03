@@ -1,3 +1,4 @@
+// Ajout d'une console par son adresse IP (quand elle n'est pas trouvée sur le réseau).
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls

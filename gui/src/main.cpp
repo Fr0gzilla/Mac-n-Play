@@ -25,6 +25,7 @@ int main(int argc, char *argv[]) { return real_main(argc, argv); }
 #include <QFileInfo>
 #include <QDir>
 #include <QStandardPaths>
+#include "singleinstance.h"
 #include <QSettings>
 #include <QtTypes>
 
@@ -391,7 +392,15 @@ int real_main(int argc, char *argv[])
 
 int RunMain(QGuiApplication &app, Settings *settings, bool exit_app_on_stream_exit)
 {
+	SingleInstance single_instance(QStringLiteral("MacnPlay-une-seule-copie"));
+	if(!single_instance.claim())
+		return 0;
 	QmlMainWindow main_window(settings, exit_app_on_stream_exit);
+	QObject::connect(&single_instance, &SingleInstance::activationRequested, &main_window, [&main_window] {
+		main_window.show();
+		main_window.raise();
+		main_window.requestActivate();
+	});
 	main_window.show();
 	return app.exec();
 }

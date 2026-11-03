@@ -1,3 +1,4 @@
+// Fond animé de l'accueil : symboles ✕ ○ △ □ néon.
 import QtQuick
 import QtQuick.Effects
 

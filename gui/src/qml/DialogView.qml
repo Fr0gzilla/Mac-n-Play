@@ -1,3 +1,4 @@
+// Cadre commun des pages plein écran (titre, bouton retour, bouton d'action).
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls

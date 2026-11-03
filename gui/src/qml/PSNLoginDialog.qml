@@ -1,3 +1,4 @@
+// Connexion au compte PSN par la page intégrée de Sony : vue de Chiaki.psn.
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls

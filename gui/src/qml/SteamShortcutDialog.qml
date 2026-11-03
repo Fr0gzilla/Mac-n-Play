@@ -1,3 +1,4 @@
+// Création d'un raccourci Steam (désactivé sur Mac).
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls

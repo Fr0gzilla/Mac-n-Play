@@ -1,3 +1,4 @@
+// Réglages avancés du rendu (libplacebo) : correspondance des couleurs.
 import QtCore
 import QtQuick
 import QtQuick.Layouts

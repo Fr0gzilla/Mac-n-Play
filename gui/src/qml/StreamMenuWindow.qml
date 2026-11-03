@@ -1,3 +1,4 @@
+// Fenêtre séparée qui accueille le menu en jeu.
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls

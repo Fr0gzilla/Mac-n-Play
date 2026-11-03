@@ -12,6 +12,7 @@
 
 #include "discoverymanager.h"
 #include "host.h"
+#include "macnplayrules.h"
 
 #include <QFutureWatcher>
 #include <QJSValue>
@@ -60,7 +61,7 @@ class ConsoleRegistry : public QObject
     Q_PROPERTY(bool limitReached READ limitReached NOTIFY listChanged)
 
 public:
-    static constexpr int MAX_CONSOLES = 2;
+    static constexpr int MAX_CONSOLES = MacnPlayRules::MAX_CONSOLES;
 
     ConsoleRegistry(Settings *settings, QObject *parent = nullptr);
 
@@ -72,7 +73,7 @@ public:
     void setDiscoveryEnabled(bool enabled);
     int maxConsoles() const { return MAX_CONSOLES; }
     int registeredCount() const;
-    bool limitReached() const { return registeredCount() >= MAX_CONSOLES; }
+    bool limitReached() const { return MacnPlayRules::consoleLimitReached(registeredCount()); }
 
     // la console à la position « index » de la liste de l'accueil (valid = false si aucune)
     ConsoleEntry consoleAt(int index) const;

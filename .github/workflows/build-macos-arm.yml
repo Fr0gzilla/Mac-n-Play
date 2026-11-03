@@ -61,6 +61,11 @@ jobs:
           export CPATH=$(brew --prefix)/opt/ffmpeg/include
           cmake --build build --config Release --clean-first --target chiaki
 
+      - name: Tests des règles
+        run: |
+          cmake --build build --config Release --target macnplay-rules-test
+          ctest --test-dir build --output-on-failure -R macnplay-rules
+
       - name: Package
         run: |
           APP="Mac'n'Play.app"

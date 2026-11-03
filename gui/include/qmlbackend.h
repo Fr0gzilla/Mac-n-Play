@@ -8,6 +8,7 @@
 //   - Chiaki.controllers       → ConnectedControllers (manettes branchées)
 //   - Chiaki.controllerMapping → ControllerMappingController (attribution des boutons)
 //   - Chiaki.settings          → QmlSettings (réglages)
+//   - Chiaki.journal           → JournalController (journal de l'appli)
 // Le moteur de la partie (réseau, vidéo, son) est StreamSession, hérité de chiaki-ng.
 #pragma once
 
@@ -20,6 +21,7 @@
 #include "psnaccount.h"
 #include "consoleregistry.h"
 #include "connectedcontrollers.h"
+#include "appjournal.h"
 
 #include <QObject>
 #include <QMutex>
@@ -62,6 +64,7 @@ class QmlBackend : public QObject
     Q_PROPERTY(QList<QmlController*> controllers READ qmlControllers NOTIFY controllersChanged)
     Q_PROPERTY(PsnAccount* psn READ psnAccount CONSTANT)
     Q_PROPERTY(ConsoleRegistry* consoles READ consoleRegistry CONSTANT)
+    Q_PROPERTY(JournalController* journal READ journalController CONSTANT)
     Q_PROPERTY(bool autoConnect READ autoConnect NOTIFY autoConnectChanged)
     Q_PROPERTY(PsnConnectState connectState READ connectState WRITE setConnectState NOTIFY connectStateChanged)
     Q_PROPERTY(ControllerMappingController* controllerMapping READ controllerMappingController CONSTANT)
@@ -90,6 +93,7 @@ public:
     QmlSettings *qmlSettings() const;
     PsnAccount *psnAccount() const { return psn_account; }
     ConsoleRegistry *consoleRegistry() const { return consoles; }
+    JournalController *journalController() const { return journal; }
     StreamSession *qmlSession() const;
     QList<QmlController*> qmlControllers() const;
 
@@ -202,6 +206,7 @@ private:
     ControllerMappingController *controller_mapping = {};
     PsnAccount *psn_account = {};
     ConsoleRegistry *consoles = {};
+    JournalController *journal = {};
     ConnectedControllers *connected_controllers = {};
     bool disable_zero_copy = false;
     QMutex hw_transfer_state_mutex;

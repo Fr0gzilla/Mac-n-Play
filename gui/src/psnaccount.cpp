@@ -4,6 +4,7 @@
 #include "psntoken.h"
 #include "jsonrequester.h"
 #include "macnplaylog.h"
+#include "macnplayrules.h"
 
 #include "chiaki/remote/holepunch.h"
 
@@ -176,8 +177,7 @@ void PsnAccount::refresh()
     if(expiry_text.isEmpty() || settings->GetPsnRefreshToken().isEmpty())
         return;
     const QDateTime expiry = QDateTime::fromString(expiry_text, settings->GetTimeFormat());
-    // une minute de marge : un jeton qui expire pendant la requête serait refusé
-    if(QDateTime::currentDateTime().addSecs(60) >= expiry)
+    if(MacnPlayRules::tokenNeedsRenewal(QDateTime::currentSecsSinceEpoch(), expiry.toSecsSinceEpoch()))
         renewTokens();
     else
         emit tokensReady();

@@ -1,3 +1,4 @@
+// Repère d'un bouton de manette (✕, L1…) avec son action.
 import QtQml
 
 // noms et symboles des boutons de manette, partagés par les pages Touches et Affectation

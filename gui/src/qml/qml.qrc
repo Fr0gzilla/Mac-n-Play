@@ -3,6 +3,8 @@
     <file>qtquickcontrols2.conf</file>
     <file>Main.qml</file>
     <file>MainView.qml</file>
+    <file>HomeTopBar.qml</file>
+    <file>PsnAccountPanel.qml</file>
     <file>StreamView.qml</file>
     <file>StreamMenuWindow.qml</file>
         <file>StreamMenuContent.qml</file>
@@ -13,6 +15,17 @@
     <file>RegistDialog.qml</file>
     <file>SteamShortcutDialog.qml</file>
     <file>SettingsDialog.qml</file>
+    <file>SettingCard.qml</file>
+    <file>SettingSection.qml</file>
+    <file>SettingsGeneralTab.qml</file>
+    <file>SettingsVideoTab.qml</file>
+    <file>SettingsStreamTab.qml</file>
+    <file>SettingsAudioWifiTab.qml</file>
+    <file>SettingsConsolesTab.qml</file>
+    <file>SettingsKeysTab.qml</file>
+    <file>SettingsControllersTab.qml</file>
+    <file>SettingsRemoteTab.qml</file>
+    <file>SettingsConfigTab.qml</file>
     <file>DisplaySettingsDialog.qml</file>
     <file>PlaceboSettingsDialog.qml</file>
     <file>PlaceboColorMappingDialog.qml</file>

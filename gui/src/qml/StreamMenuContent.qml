@@ -1,3 +1,4 @@
+// Contenu du menu en jeu (L1 + R1 + L3 + R3) : son, image, qualité, retour à l'accueil.
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls

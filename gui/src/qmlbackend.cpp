@@ -3,6 +3,7 @@
 #include "consoleregistry.h"
 #include "connectedcontrollers.h"
 #include "macnplaylog.h"
+#include "appjournal.h"
 #include <QSettings>
 #include "qmlsettings.h"
 #include "qmlmainwindow.h"
@@ -53,7 +54,7 @@ static bool detailedVerboseTelemetryEnabled()
     return qEnvironmentVariableIntValue("CHIAKI_VERBOSE_LOG_NOISE") == 1;
 }
 
-#define CHIAKI_NOISY_DEBUG() if (!detailedVerboseTelemetryEnabled()) {} else qCDebug(chiakiGui)
+#define CHIAKI_NOISY_DEBUG() if (!detailedVerboseTelemetryEnabled()) {} else qCDebug(logSession)
 
 static void logDecoderDeliveryStats(qint64 now_us, int32_t frames_lost, bool recovered)
 {
@@ -231,6 +232,7 @@ static QtMessageHandler qt_msg_handler = nullptr;
 
 static void msg_handler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
+    AppJournal::write(type, context, msg);
     QMutexLocker lock(&chiaki_log_mutex);
     if (!chiaki_log_ctx) {
         qt_msg_handler(type, context, msg);
@@ -263,6 +265,7 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     , settings_qml(new QmlSettings(settings, this))
     , window(window)
 {
+    AppJournal::open();
     qt_msg_handler = qInstallMessageHandler(msg_handler);
 
     const char *uri = "org.streetpea.chiaking";
@@ -272,6 +275,8 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     qmlRegisterUncreatableType<ControllerMappingController>(uri, 1, 0, "ControllerMapping", {});
     qmlRegisterUncreatableType<PsnAccount>(uri, 1, 0, "PsnAccount", {});
     qmlRegisterUncreatableType<ConsoleRegistry>(uri, 1, 0, "ConsoleRegistry", {});
+    qmlRegisterUncreatableType<JournalController>(uri, 1, 0, "JournalController", {});
+    journal = new JournalController(this);
     qmlRegisterUncreatableType<StreamSession>(uri, 1, 0, "ChiakiSession", {});
 
     QObject *frame_obj = new QObject();
@@ -335,7 +340,7 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
                 connectToHost(index);
                 return;
             }
-            qCWarning(chiakiGui) << "Couldn't find PSN host with the requested nickname: " << auto_connect_nickname;
+            qCWarning(logSession) << "Connexion auto : la console" << auto_connect_nickname << "n'est pas dans le compte PSN";
         });
         psn_auto_connect_timer->start(PSN_INTERNET_WAIT_SECONDS * 1000);
     }
@@ -343,7 +348,7 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
         QString refresh = this->settings->GetPsnRefreshToken();
         if(refresh.isEmpty())
         {
-            qCWarning(chiakiGui) << "No refresh token found, can't refresh PSN token to use PSN remote connection";
+            qCWarning(logSession) << "Connexion à distance impossible : pas de jeton PSN enregistré";
             psn_reconnect_tries = 0;
             resume_session = false;
             psn_reconnect_timer->stop();
@@ -352,7 +357,7 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
         }
         PSNToken *psnToken = new PSNToken(this->settings, this);
         connect(psnToken, &PSNToken::PSNTokenError, this, [this](const QString &error) {
-            qCWarning(chiakiGui) << "Internet is currently down...waiting 5 seconds" << error;
+            qCWarning(logSession) << "Internet semble coupé, nouvel essai dans 5 secondes :" << error;
             psn_reconnect_tries++;
             if(psn_reconnect_tries < MAX_PSN_RECONNECT_TRIES)
                 return;
@@ -366,7 +371,7 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
         });
         connect(psnToken, &PSNToken::UnauthorizedError, psn_account, &PsnAccount::forgetCredentials);
         connect(psnToken, &PSNToken::PSNTokenSuccess, this, [this]() {
-            qCWarning(chiakiGui) << "PSN Remote Connection Tokens Refreshed. Internet is back up";
+            qCWarning(logSession) << "Internet est revenu, jetons PSN renouvelés";
             resume_session = false;
             psn_reconnect_tries = 0;
             psn_reconnect_timer->stop();
@@ -418,7 +423,7 @@ bool QmlBackend::prepareFrameForPresentation(ChiakiFfmpegFrame &frame, bool use_
         if (!logged_hw_transfer_formats.contains(format)) {
             logged_hw_transfer_formats.insert(format);
             const char *format_name = av_get_pix_fmt_name(static_cast<AVPixelFormat>(format));
-            qCInfo(chiakiGui) << "Transferring hardware-decoded frames to software for presentation:"
+            qCInfo(logSession) << "Transferring hardware-decoded frames to software for presentation:"
                               << (format_name ? format_name : "unknown");
         }
     }
@@ -438,7 +443,7 @@ bool QmlBackend::prepareFrameForPresentation(ChiakiFfmpegFrame &frame, bool use_
         }
         if (should_log_failure) {
             const char *format_name = av_get_pix_fmt_name(static_cast<AVPixelFormat>(format));
-            qCWarning(chiakiGui) << "Failed to transfer hardware frame for presentation:"
+            qCWarning(logSession) << "Failed to transfer hardware frame for presentation:"
                                  << (format_name ? format_name : "unknown");
         }
         av_frame_free(&sw_frame);
@@ -493,7 +498,7 @@ void QmlBackend::updateAudioVolume()
 
 void QmlBackend::goToSleep()
 {
-    qCInfo(chiakiGui) << "About to sleep";
+    qCInfo(logSession) << "Le Mac se met en veille : la partie est suspendue";
     if (session) {
         if (this->settings->GetSuspendAction() == SuspendAction::Sleep)
             session->GoToBed();
@@ -514,7 +519,7 @@ void QmlBackend::resumeFromSleep()
     windows_wake_sleep->setWakeState(WindowsWakeState::Awake);
 #endif
     if (resume_session) {
-        qCInfo(chiakiGui) << "Resuming session...";
+        qCInfo(logSession) << "Le Mac sort de veille : reprise de la partie";
         resume_session = false;
         if(session_info.duid.isEmpty())
         {
@@ -582,7 +587,7 @@ void QmlBackend::profileChanged()
                 connectToHost(index);
                 return;
             }
-            qCWarning(chiakiGui) << "Couldn't find PSN host with the requested nickname: " << auto_connect_nickname;
+            qCWarning(logSession) << "Connexion auto : la console" << auto_connect_nickname << "n'est pas dans le compte PSN";
         });
         psn_auto_connect_timer->start(PSN_INTERNET_WAIT_SECONDS * 1000);
     }
@@ -590,7 +595,7 @@ void QmlBackend::profileChanged()
         QString refresh = this->settings->GetPsnRefreshToken();
         if(refresh.isEmpty())
         {
-            qCWarning(chiakiGui) << "No refresh token found, can't refresh PSN token to use PSN remote connection";
+            qCWarning(logSession) << "Connexion à distance impossible : pas de jeton PSN enregistré";
             psn_reconnect_tries = 0;
             resume_session = false;
             psn_reconnect_timer->stop();
@@ -599,7 +604,7 @@ void QmlBackend::profileChanged()
         }
         PSNToken *psnToken = new PSNToken(this->settings, this);
         connect(psnToken, &PSNToken::PSNTokenError, this, [this](const QString &error) {
-            qCWarning(chiakiGui) << "Internet is currently down...waiting 5 seconds" << error;
+            qCWarning(logSession) << "Internet semble coupé, nouvel essai dans 5 secondes :" << error;
             psn_reconnect_tries++;
             if(psn_reconnect_tries < MAX_PSN_RECONNECT_TRIES)
                 return;
@@ -613,7 +618,7 @@ void QmlBackend::profileChanged()
         });
         connect(psnToken, &PSNToken::UnauthorizedError, psn_account, &PsnAccount::forgetCredentials);
         connect(psnToken, &PSNToken::PSNTokenSuccess, this, []() {
-            qCWarning(chiakiGui) << "PSN Remote Connection Tokens Refreshed. Internet is back up";
+            qCWarning(logSession) << "Internet est revenu, jetons PSN renouvelés";
         });
         connect(psnToken, &PSNToken::PSNTokenSuccess, this, [this]() {
             resume_session = false;
@@ -786,7 +791,7 @@ void QmlBackend::checkPs4Pro(StreamSession *checked_session)
     QSettings prefs;
     QStringList pro_hosts = prefs.value("macnplay/ps4ProHosts").toString().split(",", Qt::SkipEmptyParts);
     const bool is_pro = height >= pro_check_requested_height;
-    qCInfo(chiakiGui) << "PS4" << mac << "propose jusqu'a" << height << "p :" << (is_pro ? "PS4 Pro" : "PS4 classique");
+    qCInfo(logSession) << "PS4" << mac << "propose jusqu'a" << height << "p :" << (is_pro ? "PS4 Pro" : "PS4 classique");
     if (is_pro && !pro_hosts.contains(mac))
         pro_hosts.append(mac);
     if (!is_pro)
@@ -809,7 +814,7 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
     }
 
     if (session) {
-        qCWarning(chiakiGui) << "Another session is already active";
+        qCWarning(logSession) << "Une partie est déjà en cours : nouvelle partie refusée";
         return;
     }
 
@@ -826,7 +831,7 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         && session_info.hw_decoder != "auto"
         && session_info.hw_decoder != "none"
         && !availableDecoders.contains(session_info.hw_decoder)) {
-        qCInfo(chiakiGui) << "Configured hw decoder" << session_info.hw_decoder
+        qCInfo(logSession) << "Configured hw decoder" << session_info.hw_decoder
                           << "is not currently available, falling back to auto";
         session_info.hw_decoder = "auto";
     }
@@ -840,42 +845,42 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
 #if defined(Q_OS_LINUX)
         if (prefer_cuda)
         {
-            qCInfo(chiakiGui) << "Renderer backend is OpenGL, falling back from vulkan decoder to cuda";
+            qCInfo(logSession) << "Renderer backend is OpenGL, falling back from vulkan decoder to cuda";
             session_info.hw_decoder = "cuda";
             fallbackApplied = true;
         }
         else
         if (availableDecoders.contains("vaapi"))
         {
-            qCInfo(chiakiGui) << "Renderer backend is OpenGL, falling back from vulkan decoder to vaapi";
+            qCInfo(logSession) << "Renderer backend is OpenGL, falling back from vulkan decoder to vaapi";
             session_info.hw_decoder = "vaapi";
             fallbackApplied = true;
         }
 #elif defined(Q_OS_WIN)
         if (prefer_cuda)
         {
-            qCInfo(chiakiGui) << "Renderer backend is OpenGL, falling back from vulkan decoder to cuda";
+            qCInfo(logSession) << "Renderer backend is OpenGL, falling back from vulkan decoder to cuda";
             session_info.hw_decoder = "cuda";
             fallbackApplied = true;
         }
         else
         if (availableDecoders.contains("d3d11va"))
         {
-            qCInfo(chiakiGui) << "Renderer backend is OpenGL, falling back from vulkan decoder to d3d11va";
+            qCInfo(logSession) << "Renderer backend is OpenGL, falling back from vulkan decoder to d3d11va";
             session_info.hw_decoder = "d3d11va";
             fallbackApplied = true;
         }
 #elif defined(Q_OS_MACOS)
         if (availableDecoders.contains("videotoolbox"))
         {
-            qCInfo(chiakiGui) << "Renderer backend is OpenGL, falling back from vulkan decoder to videotoolbox";
+            qCInfo(logSession) << "Renderer backend is OpenGL, falling back from vulkan decoder to videotoolbox";
             session_info.hw_decoder = "videotoolbox";
             fallbackApplied = true;
         }
 #endif
         if (!fallbackApplied)
         {
-            qCInfo(chiakiGui) << "Renderer backend is OpenGL, falling back from vulkan decoder to software decoder";
+            qCInfo(logSession) << "Renderer backend is OpenGL, falling back from vulkan decoder to software decoder";
             session_info.hw_decoder.clear();
         }
     };
@@ -885,39 +890,39 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
 #if defined(Q_OS_LINUX)
         if(!use_opengl_renderer && availableDecoders.contains("vulkan"))
         {
-            qCInfo(chiakiGui) << "Auto hw decoder selecting vulkan";
+            qCInfo(logSession) << "Auto hw decoder selecting vulkan";
             session_info.hw_decoder = "vulkan";
         }
         else if(prefer_cuda)
         {
-            qCInfo(chiakiGui) << "Auto hw decoder selecting cuda";
+            qCInfo(logSession) << "Auto hw decoder selecting cuda";
             session_info.hw_decoder = "cuda";
         }
         else if(availableDecoders.contains("vaapi"))
         {
-            qCInfo(chiakiGui) << "Auto hw decoder selecting vaapi";
+            qCInfo(logSession) << "Auto hw decoder selecting vaapi";
             session_info.hw_decoder = "vaapi";
         }
 #elif defined(Q_OS_WIN)
         if(!use_opengl_renderer && availableDecoders.contains("vulkan"))
         {
-            qCInfo(chiakiGui) << "Auto hw decoder selecting vulkan";
+            qCInfo(logSession) << "Auto hw decoder selecting vulkan";
             session_info.hw_decoder = "vulkan";
         }
         else if(prefer_cuda)
         {
-            qCInfo(chiakiGui) << "Auto hw decoder selecting cuda";
+            qCInfo(logSession) << "Auto hw decoder selecting cuda";
             session_info.hw_decoder = "cuda";
         }
         else if(availableDecoders.contains("d3d11va"))
         {
-            qCInfo(chiakiGui) << "Auto hw decoder selecting d3d11va";
+            qCInfo(logSession) << "Auto hw decoder selecting d3d11va";
             session_info.hw_decoder = "d3d11va";
         }
 #elif defined(Q_OS_MACOS)
         if(availableDecoders.contains("videotoolbox"))
         {
-            qCInfo(chiakiGui) << "Auto hw decoder selecting videotoolbox";
+            qCInfo(logSession) << "Auto hw decoder selecting videotoolbox";
             session_info.hw_decoder = "videotoolbox";
         }
 #endif
@@ -928,33 +933,33 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         if (!session_info.hw_device_ctx)
         {
             session_info.hw_decoder.clear();
-            qCInfo(chiakiGui) << "vulkan video decoding not supported by your gpu driver, retrying other hw video decoders";
+            qCInfo(logSession) << "vulkan video decoding not supported by your gpu driver, retrying other hw video decoders";
 #if defined(Q_OS_LINUX)
             if(prefer_cuda)
             {
-                qCInfo(chiakiGui) << "Falling back to cuda";
+                qCInfo(logSession) << "Falling back to cuda";
                 session_info.hw_decoder = "cuda";
             }
             else if(availableDecoders.contains("vaapi"))
             {
-                qCInfo(chiakiGui) << "Falling back to vaapi";
+                qCInfo(logSession) << "Falling back to vaapi";
                 session_info.hw_decoder = "vaapi";
             }
 #elif defined(Q_OS_WIN)
             if(prefer_cuda)
             {
-                qCInfo(chiakiGui) << "Falling back to cuda";
+                qCInfo(logSession) << "Falling back to cuda";
                 session_info.hw_decoder = "cuda";
             }
             else if(availableDecoders.contains("d3d11va"))
             {
-                qCInfo(chiakiGui) << "Falling back to d3d11va";
+                qCInfo(logSession) << "Falling back to d3d11va";
                 session_info.hw_decoder = "d3d11va";
             }
 #endif
         }
         if(session_info.hw_decoder.isEmpty())
-            qCInfo(chiakiGui) << "Falling back to software decoder";
+            qCInfo(logSession) << "Falling back to software decoder";
     }
 
     try {
@@ -967,7 +972,7 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
     connect(session, &StreamSession::FfmpegFrameAvailable, frame_thread->parent(), [this, use_opengl_renderer]() {
         ChiakiFfmpegDecoder *decoder = session->GetFfmpegDecoder();
         if (!decoder) {
-            qCCritical(chiakiGui) << "Session has no FFmpeg decoder";
+            qCCritical(logSession) << "Session has no FFmpeg decoder";
             return;
         }
         int32_t frames_lost;
@@ -1011,6 +1016,11 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         // relance après un changement de qualité : la console garde l'ancienne connexion
         // quelques secondes (« Remote is already in use ») ; on réessaie sans afficher d'erreur
         const bool retry_restart = restart_retrying && !session_for_connections->IsConnected() && restart_tries < 15;
+        if (chiaki_quit_reason_is_error(reason))
+            qCWarning(logSession) << "Partie terminée sur une erreur :" << chiaki_quit_reason_string(reason) << reason_str
+                                  << (retry_restart ? "(changement de qualité : nouvel essai)" : "");
+        else
+            qCInfo(logSession) << "Partie terminée :" << chiaki_quit_reason_string(reason);
         if (session_for_connections->IsConnected())
             restart_retrying = false;
         if (chiaki_quit_reason_is_error(reason) && !retry_restart) {
@@ -1056,11 +1066,11 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
             QTimer::singleShot(1500, this, [this] { restartCreateSession(); });
         } else if (retry_restart) {
             restart_tries++;
-            qCInfo(chiakiGui) << "Console still busy after quality change, retry" << restart_tries;
+            qCInfo(logSession) << "Changement de qualité : la console est encore occupée, essai" << restart_tries;
             QTimer::singleShot(1500, this, [this] { restartCreateSession(); });
         }
 #ifdef Q_OS_WINDOWS
-        qCInfo(chiakiGui) << "Checking sleep state: ";
+        qCInfo(logSession) << "Vérification de l'état de veille de la console";
         if(windows_wake_sleep->getWakeState() == WindowsWakeState::Awake)
             QTimer::singleShot(2000, this, &QmlBackend::resumeFromSleep);
         else
@@ -1185,11 +1195,11 @@ void QmlBackend::autoRegister()
     {
         PSNToken *psnToken = new PSNToken(settings, this);
         connect(psnToken, &PSNToken::PSNTokenError, this, [this](const QString &error) {
-            qCWarning(chiakiGui) << "Could not refresh token. Automatic PSN Connection Unavailable!" << error;
+            qCWarning(logSession) << "Jetons PSN non renouvelés, connexion à distance indisponible :" << error;
         });
         connect(psnToken, &PSNToken::UnauthorizedError, psn_account, &PsnAccount::forgetCredentials);
         connect(psnToken, &PSNToken::PSNTokenSuccess, this, []() {
-            qCWarning(chiakiGui) << "PSN Remote Connection Tokens Refreshed.";
+            qCWarning(logSession) << "Jetons PSN renouvelés";
         });
         connect(psnToken, &PSNToken::PSNTokenSuccess, this, [this, info]() {
             createSession(info);
@@ -1220,7 +1230,13 @@ void QmlBackend::connectToHost(int index, QString nickname)
     window->setWindowAdjustable(false);
     auto server = consoles->consoleAt(index);
     if (!server.valid)
+    {
+        qCWarning(logSession) << "Lancement refusé : aucune console à la position" << index;
         return;
+    }
+    qCInfo(logSession) << "Lancement d'une partie sur" << (nickname.isEmpty() ? server.address() : nickname)
+                       << (server.discovered ? "(réseau local)" : "(à distance)")
+                       << (server.registered ? "" : ": console pas encore associée, ouverture de l'assistant");
 
     if (!server.registered) {
         consoles->setPendingRegistration(server);
@@ -1239,13 +1255,13 @@ void QmlBackend::connectToHost(int index, QString nickname)
         const bool wake_ps5 = server.isPS5();
         if(!consoles->sendWakeup(wake_host, wake_regist_key, wake_ps5))
         {
-            qCWarning(chiakiGui) << "Couldn't wakeup server";
+            qCWarning(logSession) << "Réveil de la console impossible";
             window->setWindowAdjustable(true);
             return;
         }
         if(nickname.isEmpty())
         {
-            qCWarning(chiakiGui) << "No nickname given for registered connection, not connecting...";
+            qCWarning(logSession) << "Connexion annulée : nom de la console inconnu";
             return;
         }
         consoles->markWaking(nickname);
@@ -1327,11 +1343,11 @@ void QmlBackend::connectToHost(int index, QString nickname)
         {
             PSNToken *psnToken = new PSNToken(settings, this);
             connect(psnToken, &PSNToken::PSNTokenError, this, [this](const QString &error) {
-                qCWarning(chiakiGui) << "Could not refresh token. Automatic PSN Connection Unavailable!" << error;
+                qCWarning(logSession) << "Jetons PSN non renouvelés, connexion à distance indisponible :" << error;
             });
             connect(psnToken, &PSNToken::UnauthorizedError, psn_account, &PsnAccount::forgetCredentials);
             connect(psnToken, &PSNToken::PSNTokenSuccess, this, []() {
-                qCWarning(chiakiGui) << "PSN Remote Connection Tokens Refreshed.";
+                qCWarning(logSession) << "Jetons PSN renouvelés";
             });
             connect(psnToken, &PSNToken::PSNTokenSuccess, this, [this, info]() {
                 createSession(info);
@@ -1385,7 +1401,7 @@ void QmlBackend::restartSessionWithResolution(int preset)
     restart_pending = true;
     restart_was_fullscreen = window->windowState() == Qt::WindowFullScreen;
     restart_geometry = window->geometry();
-    qCInfo(chiakiGui) << "Restarting session with resolution preset" << preset;
+    qCInfo(logSession) << "Changement de qualité : relance de la partie en préréglage" << preset;
     stopSession(false);
 }
 
@@ -1428,7 +1444,7 @@ void QmlBackend::sessionGoHome()
 
 void QmlBackend::enterPin(const QString &pin)
 {
-    qCInfo(chiakiGui) << "Set login pin";
+    qCInfo(logSession) << "Code de connexion saisi";
     if (session)
         session->SetLoginPIN(pin);
 }

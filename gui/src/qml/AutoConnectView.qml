@@ -1,3 +1,4 @@
+// Écran de connexion automatique au lancement : attente de la console, réveil, annulation.
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.Material

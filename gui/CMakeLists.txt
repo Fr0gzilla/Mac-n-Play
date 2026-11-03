@@ -7,7 +7,7 @@ if(APPLE)
 	enable_language(OBJCXX)
 endif()
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Concurrent Svg Qml Quick Widgets)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Concurrent Network Svg Qml Quick Widgets)
 if(Qt6_VERSION VERSION_GREATER_EQUAL "6.10.0")
 	find_package(Qt6 REQUIRED COMPONENTS GuiPrivate)
 endif()
@@ -54,6 +54,11 @@ set(SOURCE_FILES
 	src/consoleregistry.cpp
 	include/psnaccount.h
 	src/psnaccount.cpp
+	include/macnplayrules.h
+	include/singleinstance.h
+	src/singleinstance.cpp
+	include/appjournal.h
+	src/appjournal.cpp
 	include/macnplaylog.h
 	src/macnplaylog.cpp
 	include/qmlcontroller.h
@@ -116,7 +121,7 @@ if(CHIAKI_ENABLE_CLI)
 	target_link_libraries(chiaki chiaki-cli-lib)
 endif()
 
-target_link_libraries(chiaki Qt::Core Qt::Gui Qt::GuiPrivate Qt::Concurrent Qt::Svg Qt::Qml Qt::Quick Qt::Widgets)
+target_link_libraries(chiaki Qt::Core Qt::Gui Qt::GuiPrivate Qt::Concurrent Qt::Network Qt::Svg Qt::Qml Qt::Quick Qt::Widgets)
 if (${Qt6DBus_FOUND} AND NOT WIN32)
 	target_link_libraries(chiaki Qt::DBus)
 if (NOT APPLE)
@@ -176,4 +181,14 @@ install(FILES io.github.streetpea.Chiaki4deck.appdata.xml DESTINATION share/meta
 set(MACNPLAY_VERSION "" CACHE STRING "Version de Mac'n'Play affichée dans l'appli")
 if(MACNPLAY_VERSION)
 	set_property(SOURCE src/main.cpp APPEND PROPERTY COMPILE_DEFINITIONS MACNPLAY_VERSION="${MACNPLAY_VERSION}")
+endif()
+
+# tests automatiques des règles métier de Mac'n'Play (sans écran ni réseau)
+if(CHIAKI_ENABLE_TESTS)
+	find_package(Qt6 COMPONENTS Test REQUIRED)
+	add_executable(macnplay-rules-test tests/rulestest.cpp)
+	set_target_properties(macnplay-rules-test PROPERTIES AUTOMOC ON)
+	target_include_directories(macnplay-rules-test PRIVATE include)
+	target_link_libraries(macnplay-rules-test Qt6::Test)
+	add_test(NAME macnplay-rules COMMAND macnplay-rules-test)
 endif()

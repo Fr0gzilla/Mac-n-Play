@@ -1,3 +1,4 @@
+// Partie en cours : image, chargement, menu en jeu, messages d'erreur.
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls

@@ -1,3 +1,4 @@
+// Connexion au compte PSN en collant l'adresse de retour de Sony : vue de Chiaki.psn.
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls

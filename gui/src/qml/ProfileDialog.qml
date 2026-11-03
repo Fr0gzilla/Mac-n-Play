@@ -1,3 +1,4 @@
+// Gestion des profils de réglages (créer, choisir, supprimer).
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls

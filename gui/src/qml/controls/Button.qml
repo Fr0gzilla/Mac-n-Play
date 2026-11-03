@@ -1,3 +1,4 @@
+// Bouton du thème Mac'n'Play, navigable à la manette.
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.Material

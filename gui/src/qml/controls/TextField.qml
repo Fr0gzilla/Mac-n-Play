@@ -1,3 +1,4 @@
+// Champ de texte du thème.
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.Material

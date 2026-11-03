@@ -1,3 +1,4 @@
+// Réglages avancés du rendu (libplacebo) : netteté, mise à l'échelle, débruitage.
 import QtCore
 import QtQuick
 import QtQuick.Layouts

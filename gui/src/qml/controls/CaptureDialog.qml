@@ -1,3 +1,4 @@
+// Fenêtre qui attend l'appui sur une touche (choix d'une touche).
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls

@@ -1,3 +1,4 @@
+// Barre de défilement du thème.
 import QtQuick
 import QtQuick.Controls
 

@@ -1,3 +1,4 @@
+// Case à cocher du thème, navigable à la manette.
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.Material

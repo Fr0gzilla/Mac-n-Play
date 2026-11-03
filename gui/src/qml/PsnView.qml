@@ -1,3 +1,4 @@
+// Écran d'attente d'une partie à distance (par Internet) : étapes de connexion.
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.Material

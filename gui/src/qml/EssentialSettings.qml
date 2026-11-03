@@ -1,3 +1,4 @@
+// Page « L'essentiel » des Paramètres : les réglages utiles à tous, par console.
 import QtCore
 import QtQuick
 import QtQuick.Layouts

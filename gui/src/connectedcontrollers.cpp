@@ -5,6 +5,7 @@
 #include "qmlmainwindow.h"
 #include "settings.h"
 #include "macnplaylog.h"
+#include "macnplayrules.h"
 
 ConnectedControllers::ConnectedControllers(Settings *settings, QmlMainWindow *window, QObject *parent)
     : QObject(parent), settings(settings), window(window)
@@ -19,17 +20,8 @@ uint32_t ConnectedControllers::streamMenuShortcut() const
 {
     if(!settings->GetStreamMenuEnabled())
         return 0;
-    // chaque réglage vaut « numéro du bouton + 1 » (0 = pas de bouton) : on en fait un masque
-    const uint32_t buttons[] = {
-        settings->GetStreamMenuShortcut1(), settings->GetStreamMenuShortcut2(),
-        settings->GetStreamMenuShortcut3(), settings->GetStreamMenuShortcut4() };
-    uint32_t shortcut = 0;
-    for(uint32_t button : buttons)
-    {
-        if(button > 0)
-            shortcut |= 1u << (button - 1);
-    }
-    return shortcut;
+    return MacnPlayRules::buttonComboMask({settings->GetStreamMenuShortcut1(), settings->GetStreamMenuShortcut2(),
+                                           settings->GetStreamMenuShortcut3(), settings->GetStreamMenuShortcut4()});
 }
 
 void ConnectedControllers::applyStreamMenuShortcut()

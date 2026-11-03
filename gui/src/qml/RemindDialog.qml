@@ -1,3 +1,4 @@
+// Rappel ponctuel affiché à l'utilisateur, avec « ne plus afficher ».
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls

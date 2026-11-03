@@ -1,4 +1,5 @@
 #include "qmlsettings.h"
+#include "macnplayrules.h"
 #include "sessionlog.h"
 
 #include <QSet>
@@ -65,22 +66,11 @@ QmlSettings::QmlSettings(Settings *settings, QObject *parent)
 
     // la croix « pavé tactile » ne doit pas avoir la même combinaison que le menu en jeu,
     // sinon ouvrir le menu bascule aussi la croix : on la remet à L1 + R1 + Haut
-    {
-        auto combo = [](uint a, uint b, uint c, uint d) {
-            uint flags = 0;
-            for (uint n : {a, b, c, d})
-                if (n > 0)
-                    flags |= 1u << (n - 1);
-            return flags;
-        };
-        const uint dpad = combo(settings->GetDpadTouchShortcut1(), settings->GetDpadTouchShortcut2(), settings->GetDpadTouchShortcut3(), settings->GetDpadTouchShortcut4());
-        const uint menu = combo(settings->GetStreamMenuShortcut1(), settings->GetStreamMenuShortcut2(), settings->GetStreamMenuShortcut3(), settings->GetStreamMenuShortcut4());
-        if (dpad && dpad == menu) {
-            settings->SetDpadTouchShortcut1(9);
-            settings->SetDpadTouchShortcut2(10);
-            settings->SetDpadTouchShortcut3(7);
-            settings->SetDpadTouchShortcut4(0);
-        }
+    if (dpadComboClashesWithMenu(settings->GetDpadTouchShortcut1(), settings->GetDpadTouchShortcut2(), settings->GetDpadTouchShortcut3(), settings->GetDpadTouchShortcut4())) {
+        settings->SetDpadTouchShortcut1(9);
+        settings->SetDpadTouchShortcut2(10);
+        settings->SetDpadTouchShortcut3(7);
+        settings->SetDpadTouchShortcut4(0);
     }
     connect(settings, &Settings::RegisteredHostsUpdated, this, &QmlSettings::registeredHostsChanged);
     connect(settings, &Settings::ProfilesUpdated, this, &QmlSettings::profilesChanged);
@@ -866,6 +856,29 @@ void QmlSettings::setDpadTouchIncrement(uint16_t increment)
 {
     settings->SetDpadTouchIncrement(increment);
     emit dpadTouchIncrementChanged();
+}
+
+bool QmlSettings::dpadComboClashesWithMenu(uint a, uint b, uint c, uint d) const
+{
+    return MacnPlayRules::dpadComboClashesWithMenu({a, b, c, d},
+        {settings->GetStreamMenuShortcut1(), settings->GetStreamMenuShortcut2(), settings->GetStreamMenuShortcut3(), settings->GetStreamMenuShortcut4()});
+}
+
+bool QmlSettings::trySetDpadTouchShortcut(int slot, uint button)
+{
+    uint combo[4] = { settings->GetDpadTouchShortcut1(), settings->GetDpadTouchShortcut2(), settings->GetDpadTouchShortcut3(), settings->GetDpadTouchShortcut4() };
+    if (slot < 1 || slot > 4)
+        return false;
+    combo[slot - 1] = button;
+    if (dpadComboClashesWithMenu(combo[0], combo[1], combo[2], combo[3]))
+        return false;
+    switch (slot) {
+    case 1: setDpadTouchShortcut1(button); break;
+    case 2: setDpadTouchShortcut2(button); break;
+    case 3: setDpadTouchShortcut3(button); break;
+    case 4: setDpadTouchShortcut4(button); break;
+    }
+    return true;
 }
 
 uint QmlSettings::dpadTouchShortcut1() const {

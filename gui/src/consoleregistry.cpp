@@ -37,7 +37,7 @@ signals:
 private:
     static void onLog(ChiakiLogLevel level, const char *msg, void *user)
     {
-        chiaki_log_cb_print(level, msg, nullptr);
+        ChiakiLogToJournal(level, msg, const_cast<QLoggingCategory *>(&logConsoles()));
         auto self = static_cast<ConsoleRegistration *>(user);
         QMetaObject::invokeMethod(self, std::bind(&ConsoleRegistration::log, self, level, QString::fromUtf8(msg)), Qt::QueuedConnection);
     }
@@ -514,7 +514,7 @@ void ConsoleRegistry::fetchPsnConsoles()
     ChiakiHolepunchDeviceInfo *ps5_devices = nullptr;
     size_t ps5_count = 0;
     ChiakiLog log;
-    chiaki_log_init(&log, settings->GetLogLevelMask(), chiaki_log_cb_print, nullptr);
+    chiaki_log_init(&log, settings->GetLogLevelMask(), ChiakiLogToJournal, const_cast<QLoggingCategory *>(&logConsoles()));
     for(int attempt = 1; attempt <= PSN_DEVICES_TRIES; attempt++)
     {
         const ChiakiErrorCode err = chiaki_holepunch_list_devices(psn_token.toUtf8().constData(), CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5, &ps5_devices, &ps5_count, &log);

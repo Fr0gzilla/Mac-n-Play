@@ -90,7 +90,7 @@ Toutes ces combinaisons se modifient dans Paramètres › Manettes.
 - **L'image saccade** : ouvrez le menu en jeu (L1 + R1 + L3 + R3) et baissez la **qualité**. Brancher la console en câble aide beaucoup.
 - **La manette ne répond pas** : déconnectez-la puis reconnectez-la dans Réglages Système › Bluetooth.
 
-Pour signaler un problème : [ouvrir un ticket](https://github.com/Fr0gzilla/Mac-n-Play/issues), en précisant votre modèle de Mac, votre version de macOS et votre console.
+Pour signaler un problème : [ouvrir un ticket](https://github.com/Fr0gzilla/Mac-n-Play/issues/new?template=probleme.md). Joignez le journal : **Paramètres › Configuration › Copier le journal**.
 
 ## État du projet
 
@@ -99,6 +99,8 @@ Mac'n'Play est testé sur **PS4 en réseau local** avec une manette DualShock 4.
 ## Fabriquer l'appli soi-même
 
 Les étapes complètes sont dans [`.github/workflows/build-macos-arm.yml`](.github/workflows/build-macos-arm.yml) : elles s'appuient sur [Homebrew](https://brew.sh), Qt 6 et CMake.
+
+L'organisation du code (modèle MVC, rôle de chaque fichier, journal, tests) est décrite dans [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 ## Licence et crédits
 

@@ -1,3 +1,4 @@
+// Réglages d'affichage ouverts depuis le menu en jeu : couleurs, luminosité, contraste.
 import QtCore
 import QtQuick
 import QtQuick.Layouts

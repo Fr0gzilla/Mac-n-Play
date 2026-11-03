@@ -1,3 +1,4 @@
+// Assistant d'ajout de console en 3 étapes : choix, compte PSN, code PIN.
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls

@@ -1,3 +1,4 @@
+// Saisie du code à 4 chiffres de la console (protection de la lecture à distance).
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls

@@ -1,3 +1,4 @@
+// Pastille d'état (« En ligne », « PSN non connecté »…).
 import QtQuick
 import QtQuick.Controls
 

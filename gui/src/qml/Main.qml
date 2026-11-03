@@ -1,3 +1,4 @@
+// Fenêtre principale : enchaîne les écrans (accueil, partie, Paramètres) et affiche les boîtes de dialogue.
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
@@ -391,7 +392,7 @@ Item {
         }
 
         Shortcut {
-            sequence: StandardKey.Cancel
+            sequences: [StandardKey.Cancel]
             onActivated: root.backToStreamMenu()
         }
 
@@ -422,7 +423,7 @@ Item {
         }
 
         Shortcut {
-            sequence: StandardKey.Cancel
+            sequences: [StandardKey.Cancel]
             onActivated: root.backToStreamMenu()
         }
 
@@ -453,7 +454,7 @@ Item {
         }
 
         Shortcut {
-            sequence: StandardKey.Cancel
+            sequences: [StandardKey.Cancel]
             onActivated: root.backToStreamMenu()
         }
 

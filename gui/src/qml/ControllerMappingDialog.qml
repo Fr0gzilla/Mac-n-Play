@@ -1,3 +1,4 @@
+// Attribution des boutons d'une manette : vue de Chiaki.controllerMapping.
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls

@@ -1,3 +1,4 @@
+// Boîte de confirmation (Oui / Non) utilisée par toute l'appli.
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
