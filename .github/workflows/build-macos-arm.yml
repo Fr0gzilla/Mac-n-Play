@@ -85,8 +85,11 @@ jobs:
             fi
             tail -5 actool.log
           done
-          rm -rf icon-out
-          echo "::warning::Icône macOS 26 non compilée : l'appli garde l'icône à l'ancien format"
+          # actool plante sur cette machine : on prend l'icône déjà compilée rangée dans le projet
+          # (gui/AppIcon-compiled, à refaire quand gui/AppIcon.icon change)
+          rm -rf icon-out && mkdir -p icon-out
+          cp gui/AppIcon-compiled/Assets.car icon-out/
+          echo "::warning::actool indisponible : icône macOS 26 précompilée utilisée (gui/AppIcon-compiled)"
 
       - name: Package
         run: |
