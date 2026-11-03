@@ -1,4 +1,6 @@
-// Généré à partir des traductions françaises de l'interface.
+// Traductions françaises de l'interface : source unique, complétée à la main.
+// Chaque texte anglais de qsTr()/tr() a sa ligne { "anglais", "français" }.
+// Pour repérer les textes sans traduction : python3 scripts/check-translations.py
 		{ "Cancelling connection...", "Annulation de la connexion..." },
 		{ "Waiting for console...", "En attente de la console..." },
 		{ "Press %1 to cancel connection", "Appuyez sur %1 pour annuler la connexion" },
@@ -860,6 +862,7 @@
 		{ "[E] Invalid address: check that you copied and pasted the whole address.", "[E] Adresse invalide : vérifiez que vous avez copié et collé l'adresse en entier." },
 		{ "[E] The pasted address contains no sign-in code.", "[E] L'adresse collée ne contient pas de code de connexion." },
 		{ "Your PSN session has expired: sign in again.", "Votre session PSN a expiré : reconnectez-vous." },
+		{ "Hide addresses and identifiers in logs (recommended)", "Masquer les adresses et identifiants dans les journaux (conseillé)" },
 		{ "ready", "allumée" },
 		{ "standby", "en veille" },
 		{ "unknown", "inconnu" },

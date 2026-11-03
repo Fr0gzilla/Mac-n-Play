@@ -110,19 +110,39 @@ void ConnectionDiagnostic::checkConsole()
 
 void ConnectionDiagnostic::checkInternet()
 {
+    // deux demandes : la première ouvre la connexion (nom de domaine, chiffrement),
+    // la seconde la réutilise et donne un temps de réponse proche de la vraie latence
+    sendInternetProbe(true);
+}
+
+void ConnectionDiagnostic::sendInternetProbe(bool first)
+{
     QNetworkRequest request{QUrl(QString::fromLatin1(SONY_CHECK_URL))};
     request.setTransferTimeout(8000);
     internet_timer.start();
     QNetworkReply *reply = network->head(request);
-    connect(reply, &QNetworkReply::finished, this, [this, reply] {
+    connect(reply, &QNetworkReply::finished, this, [this, reply, first] {
         reply->deleteLater();
         const qint64 elapsed = internet_timer.elapsed();
         if(reply->error() == QNetworkReply::SslHandshakeFailedError)
+        {
             // le réseau (école, entreprise) remplace le certificat de Sony par celui de son pare-feu
             add(tr("Internet"), "error", tr("This network intercepts secure connections (school or company network?): PlayStation servers refuse it, so playing over the Internet won't work here. Use another network, for example your phone's connection."));
-        else if(reply->error() != QNetworkReply::NoError && reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 0)
+            finish();
+            return;
+        }
+        if(reply->error() != QNetworkReply::NoError && reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 0)
+        {
             add(tr("Internet"), "error", tr("PlayStation servers can't be reached (%1). Check the Internet connection.").arg(reply->errorString()));
-        else if(elapsed > SLOW_RESPONSE_MS)
+            finish();
+            return;
+        }
+        if(first)
+        {
+            sendInternetProbe(false);
+            return;
+        }
+        if(elapsed > SLOW_RESPONSE_MS)
             add(tr("Internet"), "warning", tr("Reachable but slow (%1 ms to answer): playing over the Internet may stutter.").arg(elapsed));
         else
             add(tr("Internet"), "ok", tr("PlayStation servers reachable (%1 ms).").arg(elapsed));

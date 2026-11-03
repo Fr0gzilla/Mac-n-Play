@@ -146,7 +146,8 @@ public:
     void disableZeroCopy() { disable_zero_copy = true; };
     void enableZeroCopy()  { disable_zero_copy = false; };
 
-    Q_INVOKABLE void connectToHost(int index, QString nickname = QString());
+    // lance une partie sur la console de clé « key » (voir ConsoleRegistry::list)
+    Q_INVOKABLE void connectToHost(const QString &key, QString nickname = QString());
     Q_INVOKABLE void stopSession(bool sleep);
     // menu en jeu : qualité de la partie en cours, et relance dans une autre qualité
     Q_INVOKABLE QVariantMap sessionQuality() const;

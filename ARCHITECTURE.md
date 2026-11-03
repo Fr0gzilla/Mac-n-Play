@@ -108,8 +108,8 @@ Les écrans n'appellent jamais directement un modèle : ils passent toujours par
 
 ## Exemple : appuyer sur ✕ pour jouer
 
-1. **Vue** : `MainView.qml` reçoit l'appui sur ✕ et appelle `Chiaki.connectToHost(index, nom)`.
-2. **Contrôleur de la partie** : `QmlBackend::connectToHost` demande la console à `ConsoleRegistry::consoleAt(index)`.
+1. **Vue** : `MainView.qml` reçoit l'appui sur ✕ et appelle `Chiaki.connectToHost(clé, nom)`, où la clé identifie la console (« mac:… », « psn:… ») quel que soit son rang dans la liste.
+2. **Contrôleur de la partie** : `QmlBackend::connectToHost` demande la console à `ConsoleRegistry::consoleByKey(clé)`.
    - Si elle n'est pas associée, il ouvre l'assistant (`registDialogRequested`).
    - Si elle est en veille, il la réveille avec `ConsoleRegistry::sendWakeup`.
 3. **Modèle** : `QmlSettings::activateConsole` charge les réglages propres à cette console, puis `StreamSession` démarre la partie.

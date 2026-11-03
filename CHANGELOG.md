@@ -1,5 +1,13 @@
 # Historique des versions
 
+## En cours (prochaine version)
+
+- Consoles désignées par une clé stable (adresse MAC, identifiant PSN) plutôt que par leur rang dans la liste.
+- Journal de l'appli anonymisé dès l'écriture quand le réglage « Masquer les adresses » est coché.
+- « Tester ma connexion » mesure le temps de réponse sur une connexion déjà ouverte (moins de « lent » à tort).
+- Plusieurs pré-versions de suite (beta.1, beta.2) correctement comparées pour les nouvelles versions.
+- Outils pour contribuer : vérification des traductions, mise en forme du code (`.clang-format`).
+
 ## 1.1.0-beta — 3 novembre 2026 (pré-version)
 
 - Jeu par Internet : qualité adaptée à la connexion au départ, baisse automatique si l'image saccade, message « Partie par Internet ».

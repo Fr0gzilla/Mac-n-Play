@@ -172,7 +172,9 @@ install(FILES chiaking.desktop DESTINATION share/applications)
 install(FILES chiaking.png DESTINATION share/icons/hicolor/512x512/apps)
 
 # Version de Mac'n'Play (donnée par le script de fabrication) : seul main.cpp est recompilé quand elle change
-set(MACNPLAY_VERSION "" CACHE STRING "Version de Mac'n'Play affichée dans l'appli")
+# version de Mac'n'Play : donnée par la fabrication (étiquette Git, ou 1.1.N en local) ;
+# par défaut, une version de développement qui ne masque jamais une vraie mise à jour
+set(MACNPLAY_VERSION "1.1.0-dev" CACHE STRING "Version de Mac'n'Play affichée dans l'appli")
 if(MACNPLAY_VERSION)
 	set_property(SOURCE src/main.cpp APPEND PROPERTY COMPILE_DEFINITIONS MACNPLAY_VERSION="${MACNPLAY_VERSION}")
 endif()

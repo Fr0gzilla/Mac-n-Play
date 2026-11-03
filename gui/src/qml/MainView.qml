@@ -230,23 +230,23 @@ Pane {
                 if (modelData.demo)
                     return root.showInfoDialog(qsTr("Demo console"), qsTr("This PS5 is only a demonstration, to preview the home screen with two consoles."));
                 if(modelData.discovered)
-                    Chiaki.connectToHost(index, modelData.name);
+                    Chiaki.connectToHost(modelData.key, modelData.name);
                 else
-                    Chiaki.connectToHost(index);
+                    Chiaki.connectToHost(modelData.key);
             }
 
             function wakeUpHost() {
                 if (modelData.demo)
                     return root.showInfoDialog(qsTr("Demo console"), qsTr("This PS5 is only a demonstration, to preview the home screen with two consoles."));
                 if(modelData.canWake)
-                    Chiaki.consoles.wakeUp(index);
+                    Chiaki.consoles.wakeUp(modelData.key);
             }
 
             function deleteHost() {
                 if (modelData.demo)
                     return root.showInfoDialog(qsTr("Demo console"), qsTr("This PS5 is only a demonstration, to preview the home screen with two consoles."));
                 if (modelData.manual)
-                    root.showConfirmDialog(qsTr("Delete Console"), qsTr("Are you sure you want to delete this console?"), () => {Chiaki.consoles.deleteManualHost(index)});
+                    root.showConfirmDialog(qsTr("Delete Console"), qsTr("Are you sure you want to delete this console?"), () => {Chiaki.consoles.deleteManualHost(modelData.key)});
                         
                 else if (modelData.discovered && !modelData.registered)
                     root.showConfirmDialog(qsTr("Hide Console"), qsTr("Are you sure you want to hide this console?") + "\n\n" + qsTr("Note: You can unhide from the Consoles section of the Settings under Hidden Consoles"), () => Chiaki.consoles.hide(modelData.mac, modelData.name));
@@ -256,7 +256,7 @@ Pane {
             function setConsolePin() {
                 if (modelData.demo)
                     return root.showInfoDialog(qsTr("Demo console"), qsTr("This PS5 is only a demonstration, to preview the home screen with two consoles."));
-                root.showConsolePinDialog(index);
+                root.showConsolePinDialog(modelData.key);
             }
 
             // la console en grand à droite, avec le halo de la couleur du voyant

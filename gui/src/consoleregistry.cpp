@@ -125,8 +125,9 @@ int ConsoleRegistry::registeredCount() const
 }
 
 // la liste de l'accueil, construite en un seul endroit : ce qui est affiché (map pour le QML)
-// et ce sur quoi on agit (ConsoleEntry) viennent de la même boucle, donc la console
-// à la position N de l'écran est toujours celle que consoleAt(N) renvoie
+// et ce sur quoi on agit (ConsoleEntry) viennent de la même boucle. Chaque ligne a une clé
+// stable (« mac:… », « manual:… », « psn:… ») : les écrans désignent une console par sa clé,
+// pas par sa position, qui peut changer quand le réseau répond
 QList<ConsoleRegistry::Row> ConsoleRegistry::rows() const
 {
     QList<Row> out;
@@ -180,6 +181,7 @@ QList<ConsoleRegistry::Row> ConsoleRegistry::rows() const
             }
         }
         QVariantMap &m = row.view;
+        m["key"] = DiscoveredKey(host_mac);
         m["discovered"] = true;
         m["manual"] = manual;
         m["name"] = host.host_name;
@@ -205,6 +207,7 @@ QList<ConsoleRegistry::Row> ConsoleRegistry::rows() const
         row.entry.valid = true;
         row.entry.manual_host = host;
         QVariantMap &m = row.view;
+        m["key"] = QStringLiteral("manual:%1").arg(host.GetID());
         m["discovered"] = false;
         m["manual"] = true;
         m["name"] = host.GetHost();
@@ -242,6 +245,7 @@ QList<ConsoleRegistry::Row> ConsoleRegistry::rows() const
         row.entry.registered = true;
         row.entry.registered_host = settings->GetNicknameRegisteredHost(host.GetName());
         QVariantMap &m = row.view;
+        m["key"] = PsnKey(it.key());
         m["discovered"] = false;
         m["manual"] = false;
         m["display"] = true;
@@ -259,6 +263,7 @@ QList<ConsoleRegistry::Row> ConsoleRegistry::rows() const
     {
         Row row;  // entrée invalide : on ne peut pas jouer sur une console de démonstration
         QVariantMap &m = row.view;
+        m["key"] = QStringLiteral("demo");
         m["demo"] = true;
         m["discovered"] = true;
         m["manual"] = false;
@@ -309,12 +314,24 @@ QVariantList ConsoleRegistry::hidden() const
     return out;
 }
 
-ConsoleEntry ConsoleRegistry::consoleAt(int index) const
+ConsoleEntry ConsoleRegistry::consoleByKey(const QString &key) const
 {
-    const QList<Row> all = rows();
-    if(index < 0 || index >= all.size())
-        return {};
-    return all.at(index).entry;
+    for(const Row &row : rows())
+    {
+        if(row.view.value("key").toString() == key)
+            return row.entry;
+    }
+    return {};
+}
+
+QString ConsoleRegistry::DiscoveredKey(const HostMAC &mac)
+{
+    return QStringLiteral("mac:") + mac.ToString();
+}
+
+QString ConsoleRegistry::PsnKey(const QString &duid)
+{
+    return QStringLiteral("psn:") + duid;
 }
 
 QString ConsoleRegistry::registeredPs4Name() const
@@ -327,16 +344,14 @@ QString ConsoleRegistry::registeredPs4Name() const
     return QString();
 }
 
-int ConsoleRegistry::psnConsoleIndex(const QString &nickname) const
+QString ConsoleRegistry::psnConsoleKey(const QString &nickname) const
 {
-    const QList<Row> all = rows();
-    for(int i = 0; i < all.size(); i++)
+    for(auto it = psn_hosts.cbegin(); it != psn_hosts.cend(); ++it)
     {
-        const ConsoleEntry &entry = all.at(i).entry;
-        if(entry.valid && !entry.discovered && !entry.duid.isEmpty() && entry.psn_host.GetName() == nickname)
-            return i;
+        if(it.value().GetName() == nickname)
+            return PsnKey(it.key());
     }
-    return -1;
+    return QString();
 }
 
 bool ConsoleRegistry::sendWakeup(const QString &address, const QByteArray &regist_key, bool ps5)
@@ -366,9 +381,9 @@ void ConsoleRegistry::markWaking(const QString &nickname)
     });
 }
 
-void ConsoleRegistry::wakeUp(int index, QString nickname)
+void ConsoleRegistry::wakeUp(const QString &key, QString nickname)
 {
-    const ConsoleEntry entry = consoleAt(index);
+    const ConsoleEntry entry = consoleByKey(key);
     if(!entry.valid || !entry.registered)
         return;
     markWaking(nickname);
@@ -380,9 +395,9 @@ void ConsoleRegistry::wakeUp(int index, QString nickname)
     });
 }
 
-void ConsoleRegistry::setConsolePin(int index, QString console_pin)
+void ConsoleRegistry::setConsolePin(const QString &key, QString console_pin)
 {
-    ConsoleEntry entry = consoleAt(index);
+    ConsoleEntry entry = consoleByKey(key);
     if(!entry.valid)
         return;
     entry.registered_host.SetConsolePin(entry.registered_host, std::move(console_pin));
@@ -401,9 +416,9 @@ void ConsoleRegistry::addManualHost(int index, const QString &address)
     qCInfo(logConsoles) << "Console ajoutée à la main :" << address;
 }
 
-void ConsoleRegistry::deleteManualHost(int index)
+void ConsoleRegistry::deleteManualHost(const QString &key)
 {
-    const ConsoleEntry entry = consoleAt(index);
+    const ConsoleEntry entry = consoleByKey(key);
     const int id = entry.manual_host.GetID();
     if(!entry.valid || id < 0)
         return;

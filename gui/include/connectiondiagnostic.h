@@ -37,6 +37,7 @@ signals:
 private:
     void checkLocalNetwork();
     void checkInternet();
+    void sendInternetProbe(bool first);
     void checkPsnAccount();
     void checkConsole();
     void add(const QString &title, const QString &status, const QString &detail);

@@ -1,0 +1,14 @@
+# Mise en forme du code C++ de Mac'n'Play (clang-format).
+# À appliquer aux fichiers propres à Mac'n'Play et aux nouveaux fichiers ;
+# les fichiers hérités de chiaki-ng gardent leur style d'origine.
+BasedOnStyle: LLVM
+IndentWidth: 4
+UseTab: Never
+ColumnLimit: 140
+BreakBeforeBraces: Allman
+AllowShortFunctionsOnASingleLine: InlineOnly
+AllowShortIfStatementsOnASingleLine: Never
+SpaceBeforeParens: Never
+PointerAlignment: Right
+AccessModifierOffset: -4
+SortIncludes: Never

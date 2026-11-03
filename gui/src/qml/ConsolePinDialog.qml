@@ -9,12 +9,12 @@ import org.streetpea.chiaking
 import "controls" as C
 
 DialogView {
-    property var consoleIndex
+    property string consoleKey
     title: qsTr("Set console pin")
     buttonText: qsTr("Set")
     buttonEnabled: pin.acceptableInput
     onAccepted: {
-        Chiaki.consoles.setConsolePin(consoleIndex, pin.text.trim());
+        Chiaki.consoles.setConsolePin(consoleKey, pin.text.trim());
         stack.pop();
     }
     Item {

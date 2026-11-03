@@ -24,6 +24,7 @@ namespace
     const int KEPT_JOURNALS = 5;
     QMutex journal_mutex;
     QFile journal_file;
+    bool sanitize_lines = true;
 
     const char *severityLabel(QtMsgType type)
     {
@@ -72,9 +73,15 @@ void AppJournal::write(QtMsgType type, const QMessageLogContext &context, const 
     out << QTime::currentTime().toString("HH:mm:ss.zzz") << "  " << severityLabel(type) << "  ";
     if(context.category && qstrcmp(context.category, "default") != 0)
         out << "[" << context.category << "]  ";
-    out << message << "\n";
+    out << (sanitize_lines ? SanitizeLogMessage(message) : message) << "\n";
     // écrit tout de suite : si l'appli plante, la dernière ligne reste lisible
     journal_file.flush();
+}
+
+void AppJournal::setSanitize(bool sanitize)
+{
+    QMutexLocker lock(&journal_mutex);
+    sanitize_lines = sanitize;
 }
 
 QString AppJournal::currentPath()

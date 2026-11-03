@@ -19,6 +19,10 @@ Merci de votre intérêt ! Quelques repères pour que les contributions restent 
   en français. Jamais de jeton ni de mot de passe dans le journal.
 - **Textes de l'interface** : écrits en anglais dans `qsTr()`, traduits en français dans
   `gui/include/frenchtranslations.inc`. Une phrase entière par texte (pas de morceaux à recoller).
+  `python3 scripts/check-translations.py` liste les textes sans traduction (les noms techniques,
+  comme « Lanczos » ou « HDR10 », n'en ont pas besoin).
+- **Mise en forme** : `gui/.clang-format` (4 espaces, accolades sur leur propre ligne) pour les
+  fichiers propres à Mac'n'Play.
 - **Nouveaux fichiers** : en-tête `// SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL`.
 - Le moteur réseau (`lib/`) et le rendu vidéo (`gui/src/qmlmainwindow.cpp`) viennent de
   [chiaki-ng](https://github.com/streetpea/chiaki-ng) : n'y touchez qu'avec une bonne raison.

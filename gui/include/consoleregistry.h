@@ -82,10 +82,13 @@ public:
     int registeredCount() const;
     bool limitReached() const { return MacnPlayRules::consoleLimitReached(registeredCount()); }
 
-    // la console à la position « index » de la liste de l'accueil (valid = false si aucune)
-    ConsoleEntry consoleAt(int index) const;
-    // position dans la liste de la console du compte PSN nommée « nickname » (-1 si absente)
-    int psnConsoleIndex(const QString &nickname) const;
+    // la console de clé « key » (champ « key » de list() ; valid = false si aucune)
+    ConsoleEntry consoleByKey(const QString &key) const;
+    // clé d'une console trouvée sur le réseau local
+    static QString DiscoveredKey(const HostMAC &mac);
+    static QString PsnKey(const QString &duid);
+    // clé de la console du compte PSN nommée « nickname » (vide si absente)
+    QString psnConsoleKey(const QString &nickname) const;
     const QList<DiscoveryHost> discoveredHosts() const { return discovery_manager.GetHosts(); }
 
     // envoie le signal de réveil ; en cas d'échec, prévient l'utilisateur et renvoie false
@@ -102,10 +105,10 @@ public:
     void setPendingRegistration(const ConsoleEntry &entry) { pending_registration = entry; }
     const ConsoleEntry &pendingRegistration() const { return pending_registration; }
 
-    Q_INVOKABLE void wakeUp(int index, QString nickname = QString());
-    Q_INVOKABLE void setConsolePin(int index, QString console_pin);
+    Q_INVOKABLE void wakeUp(const QString &key, QString nickname = QString());
+    Q_INVOKABLE void setConsolePin(const QString &key, QString console_pin);
     Q_INVOKABLE void addManualHost(int index, const QString &address);
-    Q_INVOKABLE void deleteManualHost(int index);
+    Q_INVOKABLE void deleteManualHost(const QString &key);
     Q_INVOKABLE void hide(const QString &mac, const QString &nickname);
     Q_INVOKABLE void unhide(const QString &mac);
     // associe une console avec le code PIN affiché sur celle-ci ;

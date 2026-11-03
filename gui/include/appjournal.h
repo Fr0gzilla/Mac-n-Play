@@ -21,6 +21,8 @@ namespace AppJournal
     void open();
     // ajoute un message Qt au fichier (sans effet si open() n'a pas réussi)
     void write(QtMsgType type, const QMessageLogContext &context, const QString &message);
+    // masquer adresses et identifiants dès l'écriture (réglage « Masquer les adresses… »)
+    void setSanitize(bool sanitize);
     // chemin du fichier du lancement en cours (vide si indisponible)
     QString currentPath();
     // dossier qui contient les journaux de l'appli et des parties

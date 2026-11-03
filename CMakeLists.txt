@@ -1,6 +1,7 @@
 
 cmake_minimum_required(VERSION 3.10)
 
+# « chiaki » : nom hérité du moteur ; l'appli produite s'appelle Mac'n'Play (Mac'n'Play.app)
 project(chiaki)
 
 # Like option(), but the value can also be AUTO
@@ -44,6 +45,8 @@ tri_option(CHIAKI_USE_SYSTEM_CURL "Use system-provided curl instead of submodule
 option(CHIAKI_LIB_JSONC_EXTERNAL_PROJECT "Build json-c from source via FetchContent" OFF)
 option(CHIAKI_LIB_MINIUPNPC_EXTERNAL_PROJECT "Build miniupnpc from source via FetchContent" OFF)
 
+# version du moteur chiaki-ng sur lequel Mac'n'Play est construit (affichée dans les journaux
+# de partie) ; la version de Mac'n'Play elle-même est MACNPLAY_VERSION (gui/CMakeLists.txt)
 set(CHIAKI_VERSION_MAJOR 1)
 set(CHIAKI_VERSION_MINOR 10)
 set(CHIAKI_VERSION_PATCH 0)

@@ -261,8 +261,8 @@ Item {
         stack.push(profileDialogComponent)
     }
 
-    function showConsolePinDialog(consoleIndex) {
-        stack.push(consolePinDialogComponent, {consoleIndex: consoleIndex});
+    function showConsolePinDialog(consoleKey) {
+        stack.push(consolePinDialogComponent, {consoleKey: consoleKey});
     }
 
     function showSteamShortcutDialog(fromReminder) {

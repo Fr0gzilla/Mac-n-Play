@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
 
 #include <streamsession.h>
+
+// console encore occupée par la partie précédente : délai avant de redemander une partie
+static const int BUSY_CONSOLE_RETRY_MS = 500;
 #include <settings.h>
 #include <controllermanager.h>
 
@@ -2352,7 +2355,7 @@ void StreamSession::Event(ChiakiEvent *event)
 			{
 				// console encore occupée (partie précédente pas encore libérée) : on réessaie toutes les 0,5 s,
 				// pas en rafale (l'ancien délai était en millisecondes : ~270 demandes en 6 s)
-				QTimer::singleShot(500, this, &StreamSession::Start);
+				QTimer::singleShot(BUSY_CONSOLE_RETRY_MS, this, &StreamSession::Start);
 				return;
 			}
 			connected = false;

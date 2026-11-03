@@ -95,7 +95,7 @@ Item {
         }
 
         C.CheckBox {
-            text: qsTr("Hide addresses and identifiers in game logs (recommended)")
+            text: qsTr("Hide addresses and identifiers in logs (recommended)")
             checked: Chiaki.settings.logSanitize
             onToggled: Chiaki.settings.logSanitize = checked
         }

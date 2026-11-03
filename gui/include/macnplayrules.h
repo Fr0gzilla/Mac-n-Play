@@ -87,6 +87,20 @@ namespace MacnPlayRules
         return dash != std::string::npos && dash > 1 && !parseVersion(text).empty();
     }
 
+    // numéro d'une pré-version : « 1.2.3-beta.2 » → 2, « 1.2.3-beta » → 0
+    inline int prereleaseNumber(const std::string &text)
+    {
+        if(!isPrerelease(text))
+            return 0;
+        size_t end = text.size();
+        size_t start = end;
+        while(start > 0 && text[start - 1] >= '0' && text[start - 1] <= '9')
+            start--;
+        if(start == end || text[start - 1] == '-')
+            return 0;
+        return std::stoi(text.substr(start, end - start));
+    }
+
     // la version publiée est-elle plus récente que celle installée ?
     // (une version installée sans numéro, fabrication de test, n'est jamais signalée)
     inline bool versionIsNewer(const std::string &published, const std::string &installed)
@@ -99,8 +113,13 @@ namespace MacnPlayRules
         b.resize(n, 0);
         if(a != b)
             return a > b;
-        // mêmes numéros : la version finale l'emporte sur la pré-version
-        return isPrerelease(installed) && !isPrerelease(published);
+        // mêmes numéros : la version finale l'emporte sur la pré-version,
+        // et entre deux pré-versions, la plus haute (beta.2 après beta.1)
+        if(isPrerelease(installed) && !isPrerelease(published))
+            return true;
+        if(isPrerelease(installed) && isPrerelease(published))
+            return prereleaseNumber(published) > prereleaseNumber(installed);
+        return false;
     }
 
     // ---- qualité du jeu à distance (par Internet) ----

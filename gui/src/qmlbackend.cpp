@@ -223,6 +223,14 @@ static bool frame_can_use_direct_render(const AVFrame *frame, bool use_opengl_re
 #define MAX_PSN_RECONNECT_TRIES 6
 #define PSN_INTERNET_WAIT_SECONDS 5
 #define WAKEUP_WAIT_SECONDS 25
+// changement de qualité en jeu : la console garde l'ancienne connexion quelques secondes
+// (« Remote is already in use ») ; on réessaie toutes les RESTART_RETRY_DELAY_MS, au plus RESTART_MAX_TRIES fois
+static const int RESTART_MAX_TRIES = 15;
+static const int RESTART_RETRY_DELAY_MS = 1500;
+// délai avant de lire la définition que la console propose vraiment (détection PS4 Pro)
+static const int PS4_PRO_CHECK_DELAY_MS = 4000;
+// MACNPLAY_DIAGNOSTIC=1 : délai avant le diagnostic automatique (le réseau doit d'abord répondre)
+static const int STARTUP_DIAGNOSTIC_DELAY_MS = 4000;
 static QMutex chiaki_log_mutex;
 static ChiakiLog *chiaki_log_ctx = nullptr;
 static QtMessageHandler qt_msg_handler = nullptr;
@@ -291,6 +299,8 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     qmlRegisterUncreatableType<ConsoleRegistry>(uri, 1, 0, "ConsoleRegistry", {});
     qmlRegisterUncreatableType<JournalController>(uri, 1, 0, "JournalController", {});
     journal = new JournalController(settings, this);
+    AppJournal::setSanitize(settings->GetLogSanitize());
+    connect(settings_qml, &QmlSettings::logSanitizeChanged, this, [this] { AppJournal::setSanitize(this->settings->GetLogSanitize()); });
     qmlRegisterUncreatableType<UpdateChecker>(uri, 1, 0, "UpdateChecker", {});
     updates = new UpdateChecker(this);
     remote_quality = new RemoteQualityGuard(this);
@@ -337,7 +347,7 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     diagnostic = new ConnectionDiagnostic(settings, consoles, this);
     // MACNPLAY_DIAGNOSTIC=1 : lance le diagnostic au démarrage (résultat dans le journal)
     if (qEnvironmentVariableIsSet("MACNPLAY_DIAGNOSTIC"))
-        QTimer::singleShot(4000, diagnostic, &ConnectionDiagnostic::start);
+        QTimer::singleShot(STARTUP_DIAGNOSTIC_DELAY_MS, diagnostic, &ConnectionDiagnostic::start);
     connect(consoles, &ConsoleRegistry::discoveredHostsUpdated, this, &QmlBackend::updateDiscoveryHosts);
     connect(consoles, &ConsoleRegistry::error, this, &QmlBackend::error);
     connect(settings_qml, &QmlSettings::allowJoystickBackgroundEventsChanged, connected_controllers, &ConnectedControllers::applyBackgroundEvents);
@@ -905,7 +915,7 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
 
         // relance après un changement de qualité : la console garde l'ancienne connexion
         // quelques secondes (« Remote is already in use ») ; on réessaie sans afficher d'erreur
-        const bool retry_restart = restart_retrying && !session_for_connections->IsConnected() && restart_tries < 15;
+        const bool retry_restart = restart_retrying && !session_for_connections->IsConnected() && restart_tries < RESTART_MAX_TRIES;
         if (chiaki_quit_reason_is_error(reason))
             qCWarning(logSession) << "Partie terminée sur une erreur :" << chiaki_quit_reason_string(reason) << reason_str
                                   << (retry_restart ? "(changement de qualité : nouvel essai)" : "");
@@ -949,11 +959,11 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
             restart_pending = false;
             restart_retrying = true;
             restart_tries = 0;
-            QTimer::singleShot(1500, this, [this] { restartCreateSession(); });
+            QTimer::singleShot(RESTART_RETRY_DELAY_MS, this, [this] { restartCreateSession(); });
         } else if (retry_restart) {
             restart_tries++;
             qCInfo(logSession) << "Changement de qualité : la console est encore occupée, essai" << restart_tries;
-            QTimer::singleShot(1500, this, [this] { restartCreateSession(); });
+            QTimer::singleShot(RESTART_RETRY_DELAY_MS, this, [this] { restartCreateSession(); });
         }
 #ifdef Q_OS_WINDOWS
         qCInfo(logSession) << "Vérification de l'état de veille de la console";
@@ -993,7 +1003,7 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
             consoles->setDiscoveryEnabled(false);
             // la liste des tailles d'image arrive juste après la connexion
             if (!pro_check_mac.isEmpty())
-                QTimer::singleShot(4000, this, [this, session_for_connections]() { checkPs4Pro(session_for_connections); });
+                QTimer::singleShot(PS4_PRO_CHECK_DELAY_MS, this, [this, session_for_connections]() { checkPs4Pro(session_for_connections); });
         }
     });
     chiaki_log_mutex.lock();
@@ -1090,13 +1100,13 @@ void QmlBackend::finishAutoRegister(const ChiakiRegisteredHost &host)
     consoles->refreshPsnConsoles();
 }
 
-void QmlBackend::connectToHost(int index, QString nickname)
+void QmlBackend::connectToHost(const QString &key, QString nickname)
 {
     window->setWindowAdjustable(false);
-    auto server = consoles->consoleAt(index);
+    auto server = consoles->consoleByKey(key);
     if (!server.valid)
     {
-        qCWarning(logSession) << "Lancement refusé : aucune console à la position" << index;
+        qCWarning(logSession) << "Lancement refusé : console introuvable" << key;
         window->setWindowAdjustable(true);
         return;
     }
@@ -1112,6 +1122,7 @@ void QmlBackend::connectToHost(int index, QString nickname)
     }
 
     // les réglages propres à cette console (qualité, fluidité…) s'appliquent à la partie
+    // (une adresse MAC toute à zéro = console inconnue : rien à appliquer)
     if (server.registered_host.GetServerMAC().ToString() != QStringLiteral("000000000000"))
         settings_qml->activateConsole(server.registered_host.GetServerMAC().ToString());
 
@@ -1367,10 +1378,10 @@ void QmlBackend::setupAutoConnect()
         return;
     connect(psn_auto_connect_timer, &QTimer::timeout, this, [this]
     {
-        const int index = consoles->psnConsoleIndex(auto_connect_nickname);
-        if(index >= 0)
+        const QString key = consoles->psnConsoleKey(auto_connect_nickname);
+        if(!key.isEmpty())
         {
-            connectToHost(index);
+            connectToHost(key);
             return;
         }
         qCWarning(logSession) << "Connexion auto : la console" << auto_connect_nickname << "n'est pas dans le compte PSN";
@@ -1452,7 +1463,7 @@ void QmlBackend::updateDiscoveryHosts()
             if (consoles->discoveredHosts().at(i).GetHostMAC() != auto_connect_mac)
                 continue;
             psn_auto_connect_timer->stop();
-            connectToHost(i, consoles->discoveredHosts().at(i).host_name);
+            connectToHost(ConsoleRegistry::DiscoveredKey(auto_connect_mac), consoles->discoveredHosts().at(i).host_name);
             break;
         }
     }
