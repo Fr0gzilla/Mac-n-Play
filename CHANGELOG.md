@@ -9,6 +9,7 @@
 - Connexion automatique par Internet : la PS4 retenue est retrouvée dans le compte PSN, où Sony l'appelle « Main PS4 Console ».
 - Numéro de version de l'appli : macOS voyait 1.10.0 (celui de chiaki-ng), ce qui empêchait d'annoncer les nouvelles versions.
 - Journal : nom de la console noté pour une partie par Internet.
+- Image abîmée au début d'une partie (triangles, couleurs délavées) : une image complète est redemandée à la console dès qu'une image est refusée.
 - Outils pour contribuer : vérification des traductions, mise en forme du code (`.clang-format`).
 
 ## 1.1.0-beta — 3 novembre 2026 (pré-version)

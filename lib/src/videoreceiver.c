@@ -302,6 +302,15 @@ static ChiakiErrorCode chiaki_video_receiver_flush_frame(ChiakiVideoReceiver *vi
 		{
 			succ = false;
 			CHIAKI_LOGW(video_receiver->log, "Video callback did not process frame successfully.");
+			// Mac'n'Play : une image refusée par le décodeur (souvent la toute première, incomplète)
+			// laisse les suivantes sans base, d'où des triangles et des couleurs délavées jusqu'à la
+			// prochaine image complète : on la demande tout de suite à la console
+			if(!chiaki_video_receiver_get_waiting_for_idr(video_receiver)
+				&& stream_connection_send_idr_request(&video_receiver->session->stream_connection) == CHIAKI_ERR_SUCCESS)
+			{
+				chiaki_video_receiver_set_waiting_for_idr(video_receiver, true);
+				CHIAKI_LOGI(video_receiver->log, "Frame rejected by decoder, waiting for IDR frame");
+			}
 		}
 		else
 		{
