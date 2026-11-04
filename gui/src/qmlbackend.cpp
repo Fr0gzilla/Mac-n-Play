@@ -1110,7 +1110,7 @@ void QmlBackend::connectToHost(const QString &key, QString nickname)
         window->setWindowAdjustable(true);
         return;
     }
-    qCInfo(logSession) << "Lancement d'une partie sur" << (nickname.isEmpty() ? server.address() : nickname)
+    qCInfo(logSession) << "Lancement d'une partie sur" << (!nickname.isEmpty() ? nickname : !server.address().isEmpty() ? server.address() : key)
                        << (server.discovered ? "(réseau local)" : "(à distance)")
                        << (server.registered ? "" : ": console pas encore associée, ouverture de l'assistant");
 

@@ -154,12 +154,22 @@ if(APPLE)
 	target_link_libraries(chiaki "-framework AVFoundation" "-framework IOKit")
 endif()
 
+# version de Mac'n'Play : donnée par la fabrication (étiquette Git, ou 1.1.N en local) ;
+# par défaut, une version de développement qui ne masque jamais une vraie mise à jour
+set(MACNPLAY_VERSION "1.1.0-dev" CACHE STRING "Version de Mac'n'Play affichée dans l'appli")
+if(MACNPLAY_VERSION)
+	set_property(SOURCE src/main.cpp APPEND PROPERTY COMPILE_DEFINITIONS MACNPLAY_VERSION="${MACNPLAY_VERSION}")
+endif()
+# macOS impose à l'appli le numéro inscrit dans son paquet : ce doit être celui de Mac'n'Play
+# (et non celui de chiaki-ng, 1.10.0, qui cachait toute mise à jour), en chiffres seulement
+string(REGEX MATCH "^[0-9]+(\\.[0-9]+)*" MACNPLAY_BUNDLE_VERSION "${MACNPLAY_VERSION}")
+
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fanalyzer")
 set_target_properties(chiaki PROPERTIES
 		MACOSX_BUNDLE TRUE
 		MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/MacOSXBundleInfo.plist.in"
 		MACOSX_BUNDLE_BUNDLE_NAME "Mac'n'Play"
-		MACOSX_BUNDLE_BUNDLE_VERSION ${CHIAKI_VERSION}
+		MACOSX_BUNDLE_BUNDLE_VERSION ${MACNPLAY_BUNDLE_VERSION}
 		MACOSX_BUNDLE_COPYRIGHT "thestr4ng3r (AGPLv3)"
 		MACOSX_BUNDLE_GUI_IDENTIFIER "org.streetpea.chiaking"
 		MACOSX_BUNDLE_ICON_FILE chiaking.icns
@@ -171,13 +181,6 @@ install(TARGETS chiaki
 install(FILES chiaking.desktop DESTINATION share/applications)
 install(FILES chiaking.png DESTINATION share/icons/hicolor/512x512/apps)
 
-# Version de Mac'n'Play (donnée par le script de fabrication) : seul main.cpp est recompilé quand elle change
-# version de Mac'n'Play : donnée par la fabrication (étiquette Git, ou 1.1.N en local) ;
-# par défaut, une version de développement qui ne masque jamais une vraie mise à jour
-set(MACNPLAY_VERSION "1.1.0-dev" CACHE STRING "Version de Mac'n'Play affichée dans l'appli")
-if(MACNPLAY_VERSION)
-	set_property(SOURCE src/main.cpp APPEND PROPERTY COMPILE_DEFINITIONS MACNPLAY_VERSION="${MACNPLAY_VERSION}")
-endif()
 
 # tests automatiques des règles métier de Mac'n'Play (sans écran ni réseau)
 if(CHIAKI_ENABLE_TESTS)

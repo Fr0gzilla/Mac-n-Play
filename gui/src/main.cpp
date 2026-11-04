@@ -193,6 +193,11 @@ int real_main(int argc, char *argv[])
 	QtWebEngineQuick::initialize();
 #endif
 	QApplication app(argc, argv);
+#ifdef MACNPLAY_VERSION
+	// sur macOS, la création de l'appli remplace la version par celle du paquet (chiffres seuls) :
+	// on remet la version complète (« 1.1.0-beta ») pour que les mises à jour soient bien comparées
+	QGuiApplication::setApplicationVersion(MACNPLAY_VERSION);
+#endif
 	// macOS ne laisse aller le focus que sur les champs de texte et les listes (réglage « Navigation au clavier »
 	// désactivé par défaut) : la manette et les flèches restaient bloquées sur le premier réglage
 	app.styleHints()->setTabFocusBehavior(Qt::TabFocusAllControls);

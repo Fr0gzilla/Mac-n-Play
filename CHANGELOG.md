@@ -7,6 +7,8 @@
 - « Tester ma connexion » mesure le temps de réponse sur une connexion déjà ouverte (moins de « lent » à tort).
 - Plusieurs pré-versions de suite (beta.1, beta.2) correctement comparées pour les nouvelles versions.
 - Connexion automatique par Internet : la PS4 retenue est retrouvée dans le compte PSN, où Sony l'appelle « Main PS4 Console ».
+- Numéro de version de l'appli : macOS voyait 1.10.0 (celui de chiaki-ng), ce qui empêchait d'annoncer les nouvelles versions.
+- Journal : nom de la console noté pour une partie par Internet.
 - Outils pour contribuer : vérification des traductions, mise en forme du code (`.clang-format`).
 
 ## 1.1.0-beta — 3 novembre 2026 (pré-version)
