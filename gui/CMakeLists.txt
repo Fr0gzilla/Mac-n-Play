@@ -178,8 +178,6 @@ set_target_properties(chiaki PROPERTIES
 install(TARGETS chiaki
 		RUNTIME DESTINATION bin
 		BUNDLE DESTINATION bin)
-install(FILES chiaking.desktop DESTINATION share/applications)
-install(FILES chiaking.png DESTINATION share/icons/hicolor/512x512/apps)
 
 
 # tests automatiques des règles métier de Mac'n'Play (sans écran ni réseau)
