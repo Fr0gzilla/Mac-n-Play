@@ -139,10 +139,15 @@ private:
         uint32_t log_mask = 0;
         QSet<QString> registered_nicknames;
         int registered_ps4s = 0;
+        // génération des listes au moment de la demande (voir psn_generation)
+        int generation = 0;
     };
     struct PsnConsoles
     {
         bool valid = false;
+        // la liste des PS5 a bien été reçue (sinon on garde celles déjà connues)
+        bool ps5_received = false;
+        int generation = 0;
         QMap<QString, PsnHost> usable;
         QMap<QString, PsnHost> by_nickname;
     };
@@ -160,5 +165,8 @@ private:
     QMap<QString, PsnHost> psn_nickname_hosts;
     QList<QString> waking_nicknames;
     QFutureWatcher<PsnConsoles> psn_consoles_watcher;
+    // augmentée à chaque oubli des consoles (déconnexion, changement de profil) : une réponse
+    // demandée avant l'oubli concerne l'ancien compte et doit être ignorée
+    int psn_generation = 0;
     ConsoleEntry pending_registration;
 };

@@ -3,6 +3,7 @@
 
 #include "connectiondiagnostic.h"
 #include "consoleregistry.h"
+#include "psnaccount.h"
 #include "settings.h"
 #include "macnplaylog.h"
 #include "macnplayrules.h"
@@ -18,8 +19,8 @@ static const char *SONY_CHECK_URL = "https://web.np.playstation.com/";
 // au-delà, la connexion est lente pour jouer à distance (millisecondes pour une réponse)
 static const qint64 SLOW_RESPONSE_MS = 400;
 
-ConnectionDiagnostic::ConnectionDiagnostic(Settings *settings, ConsoleRegistry *consoles, QObject *parent)
-    : QObject(parent), settings(settings), consoles(consoles), network(new QNetworkAccessManager(this))
+ConnectionDiagnostic::ConnectionDiagnostic(Settings *settings, ConsoleRegistry *consoles, PsnAccount *psn, QObject *parent)
+    : QObject(parent), settings(settings), consoles(consoles), psn(psn), network(new QNetworkAccessManager(this))
 {
 }
 
@@ -81,7 +82,7 @@ void ConnectionDiagnostic::checkLocalNetwork()
 
 void ConnectionDiagnostic::checkPsnAccount()
 {
-    if(settings->GetPsnAuthToken().isEmpty())
+    if(!psn->connected())
         add(tr("PSN account"), "warning", tr("Not signed in. Only needed to play away from home: Settings › Remote › Sign in."));
     else
         add(tr("PSN account"), "ok", tr("Signed in."));

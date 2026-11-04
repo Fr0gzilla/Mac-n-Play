@@ -37,6 +37,10 @@ class SessionLog
 
 // masque adresses IP, identifiants de compte, de console et de session dans un message
 QString SanitizeLogMessage(const QString &msg);
+
+// vrai pendant qu'un message de l'appli (Qt) est recopié dans le journal de la partie :
+// il a déjà été affiché dans la console macOS, on ne l'y réimprime pas
+extern thread_local bool session_log_from_qt;
 QString GetLogBaseDir();
 QString CreateLogFilename();
 

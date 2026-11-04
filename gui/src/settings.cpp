@@ -387,6 +387,8 @@ void Settings::ImportSettings(QString filepath)
 		MigrateLegacyFrameMixerSetting(&profile_settings, &placebo_settings, nullptr, true);
 		SetCurrentProfile(std::move(profile));
 	}
+	// le fichier importé ne contient pas les jetons PSN : le compte doit le savoir
+	emit PsnTokensUpdated();
 }
 
 void Settings::ImportPlaceboSettings(QString filepath)
@@ -1112,14 +1114,22 @@ QString Settings::GetPsnAccountId() const
 
 static const char *PS4_PRO_HOSTS_KEY = "macnplay/ps4ProHosts";
 
+// consoles PS4 Pro du profil ; un profil qui n'en a jamais enregistré reprend la liste
+// commune des versions d'avant la 1.1 (gardée hors des profils)
+static QStringList Ps4ProHosts(const QSettings &profile_settings)
+{
+	const QVariant hosts = profile_settings.contains(PS4_PRO_HOSTS_KEY) ? profile_settings.value(PS4_PRO_HOSTS_KEY) : QSettings().value(PS4_PRO_HOSTS_KEY);
+	return hosts.toString().split(",", Qt::SkipEmptyParts);
+}
+
 bool Settings::GetPs4Pro(const QString &mac) const
 {
-	return settings.value(PS4_PRO_HOSTS_KEY).toString().split(",", Qt::SkipEmptyParts).contains(mac);
+	return Ps4ProHosts(settings).contains(mac);
 }
 
 void Settings::SetPs4Pro(const QString &mac, bool pro)
 {
-	QStringList hosts = settings.value(PS4_PRO_HOSTS_KEY).toString().split(",", Qt::SkipEmptyParts);
+	QStringList hosts = Ps4ProHosts(settings);
 	hosts.removeAll(mac);
 	if(pro)
 		hosts.append(mac);

@@ -149,6 +149,8 @@ void ControllerMappingController::applySavedMappings()
         const QString &saved_vid_pid = it.key();
         if(!guids_to_update.contains(saved_vid_pid))
             continue;
+        // manettes à réessayer plus tard (table d'origine pas encore disponible)
+        QStringList retry_later;
         for(const QString &target_guid : guids_to_update.value(saved_vid_pid))
         {
             // on garde la table d'origine avant de la remplacer, pour « Réinitialiser »
@@ -162,13 +164,17 @@ void ControllerMappingController::applySavedMappings()
                 {
                     // on passe à la manette suivante : une seule manette inconnue ne doit pas bloquer les autres
                     qCWarning(logController) << "Table d'origine introuvable pour la manette" << target_guid << ":" << SDL_GetError();
+                    retry_later.append(target_guid);
                     continue;
                 }
                 original_mappings.insert(target_guid, original_mapping);
             }
             addSdlMapping(target_guid, QString("%1,%2").arg(target_guid, it.value()));
         }
-        guids_to_update.remove(saved_vid_pid);
+        if(retry_later.isEmpty())
+            guids_to_update.remove(saved_vid_pid);
+        else
+            guids_to_update.insert(saved_vid_pid, retry_later);
     }
 }
 

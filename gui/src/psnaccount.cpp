@@ -104,7 +104,23 @@ void PsnAccount::setSettings(Settings *new_settings)
     if(settings)
         disconnect(settings, nullptr, this, nullptr);
     settings = new_settings;
-    connect(settings, &Settings::PsnTokensUpdated, this, &PsnAccount::connectedChanged);
+    connect(settings, &Settings::PsnTokensUpdated, this, &PsnAccount::onTokensUpdated);
+    was_connected = connected();
+    emit connectedChanged();
+}
+
+void PsnAccount::onTokensUpdated()
+{
+    const bool now_connected = connected();
+    if(was_connected && !now_connected)
+    {
+        // jetons disparus sans déconnexion demandée : réglages importés (l'export ne les contient pas)
+        qCInfo(logPsn) << "Compte PSN : jetons disparus (réglages importés), compte déconnecté";
+        was_connected = false;
+        clearProfile();
+        emit accountForgotten();
+    }
+    was_connected = now_connected;
     emit connectedChanged();
 }
 
@@ -235,6 +251,8 @@ bool PsnAccount::whenTokensValid(std::function<void()> on_ready, ErrorCallback o
 
 void PsnAccount::eraseTokens()
 {
+    // effacement voulu : le compte est oublié une seule fois, ci-dessous
+    was_connected = false;
     settings->SetPsnRefreshToken(QString());
     settings->SetPsnAuthToken(QString());
     settings->SetPsnAuthTokenExpiry(QString());

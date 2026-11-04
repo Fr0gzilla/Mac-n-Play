@@ -89,6 +89,9 @@ signals:
 private:
     void exchangeCode(const QString &code, const QJSValue &callback);
     void eraseTokens();
+    // les jetons ont changé : si le compte vient d'être perdu (import de réglages…), on l'oublie
+    void onTokensUpdated();
+    bool was_connected = false;
     // la carte du compte (profil et avatar) est enregistrée sur le Mac pour s'afficher hors ligne
     void loadCachedProfile();
     void storeProfile(QVariantMap profile);

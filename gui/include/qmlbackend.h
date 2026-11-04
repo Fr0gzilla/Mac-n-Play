@@ -240,6 +240,8 @@ private:
     QAtomicInteger<int> pending_recovered_frame = 0;
     bool resume_session = false;
     bool settings_allocd = false;
+    // profil quitté au dernier changement : gardé le temps qu'une requête PSN en cours se termine
+    Settings *retired_settings = nullptr;
     HostMAC auto_connect_mac = {};
     QString auto_connect_nickname = "";
     QString wakeup_nickname = "";

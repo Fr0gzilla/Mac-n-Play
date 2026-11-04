@@ -72,6 +72,12 @@ QmlSettings::QmlSettings(Settings *settings, QObject *parent)
         settings->SetDpadTouchShortcut3(7);
         settings->SetDpadTouchShortcut4(0);
     }
+    connectSettings();
+}
+
+// abonnements aux changements du profil de réglages (refaits à chaque changement de profil)
+void QmlSettings::connectSettings()
+{
     connect(settings, &Settings::RegisteredHostsUpdated, this, &QmlSettings::registeredHostsChanged);
     connect(settings, &Settings::Ps4ProHostsUpdated, this, &QmlSettings::ps4ProHostsChanged);
     connect(settings, &Settings::ProfilesUpdated, this, &QmlSettings::profilesChanged);
@@ -170,6 +176,7 @@ void QmlSettings::setResolutionLocalPS4(int resolution)
 {
     settings->SetResolutionLocalPS4(static_cast<ChiakiVideoResolutionPreset>(resolution));
     emit resolutionLocalPS4Changed();
+    emit qualityLabelsChanged();
 }
 
 int QmlSettings::resolutionRemotePS4() const
@@ -181,6 +188,7 @@ void QmlSettings::setResolutionRemotePS4(int resolution)
 {
     settings->SetResolutionRemotePS4(static_cast<ChiakiVideoResolutionPreset>(resolution));
     emit resolutionRemotePS4Changed();
+    emit qualityLabelsChanged();
 }
 
 int QmlSettings::resolutionLocalPS5() const
@@ -192,6 +200,7 @@ void QmlSettings::setResolutionLocalPS5(int resolution)
 {
     settings->SetResolutionLocalPS5(static_cast<ChiakiVideoResolutionPreset>(resolution));
     emit resolutionLocalPS5Changed();
+    emit qualityLabelsChanged();
 }
 
 int QmlSettings::resolutionRemotePS5() const
@@ -203,6 +212,7 @@ void QmlSettings::setResolutionRemotePS5(int resolution)
 {
     settings->SetResolutionRemotePS5(static_cast<ChiakiVideoResolutionPreset>(resolution));
     emit resolutionRemotePS5Changed();
+    emit qualityLabelsChanged();
 }
 
 int QmlSettings::disconnectAction() const
@@ -395,6 +405,7 @@ void QmlSettings::setFpsLocalPS4(int fps)
 {
     settings->SetFPSLocalPS4(static_cast<ChiakiVideoFPSPreset>(fps));
     emit fpsLocalPS4Changed();
+    emit qualityLabelsChanged();
 }
 
 int QmlSettings::fpsRemotePS4() const
@@ -406,6 +417,7 @@ void QmlSettings::setFpsRemotePS4(int fps)
 {
     settings->SetFPSRemotePS4(static_cast<ChiakiVideoFPSPreset>(fps));
     emit fpsRemotePS4Changed();
+    emit qualityLabelsChanged();
 }
 
 int QmlSettings::fpsLocalPS5() const
@@ -417,6 +429,7 @@ void QmlSettings::setFpsLocalPS5(int fps)
 {
     settings->SetFPSLocalPS5(static_cast<ChiakiVideoFPSPreset>(fps));
     emit fpsLocalPS5Changed();
+    emit qualityLabelsChanged();
 }
 
 int QmlSettings::fpsRemotePS5() const
@@ -428,6 +441,7 @@ void QmlSettings::setFpsRemotePS5(int fps)
 {
     settings->SetFPSRemotePS5(static_cast<ChiakiVideoFPSPreset>(fps));
     emit fpsRemotePS5Changed();
+    emit qualityLabelsChanged();
 }
 
 int QmlSettings::bitrateLocalPS4() const
@@ -884,6 +898,7 @@ void QmlSettings::setPs4Pro(const QString &mac, bool pro)
 {
     settings->SetPs4Pro(mac, pro);
     emit resolutionLocalPS4Changed();
+    emit qualityLabelsChanged();
     emit bitrateLocalPS4Changed();
 }
 
@@ -1976,12 +1991,14 @@ void QmlSettings::clearControllerKey2(int button)
 
 void QmlSettings::setSettings(Settings *new_settings)
 {
+    // l'ancien profil ne doit plus rien envoyer à l'interface
+    if(settings)
+        disconnect(settings, nullptr, this, nullptr);
     settings = new_settings;
-    connect(settings, &Settings::RegisteredHostsUpdated, this, &QmlSettings::registeredHostsChanged);
-    connect(settings, &Settings::ProfilesUpdated, this, &QmlSettings::profilesChanged);
-    connect(settings, &Settings::Ps4ProHostsUpdated, this, &QmlSettings::ps4ProHostsChanged);
+    connectSettings();
     refreshAllKeys();
     emit ps4ProHostsChanged();
+    emit qualityLabelsChanged();
 }
 
 QString QmlSettings::activeConsole() const
@@ -2006,9 +2023,13 @@ void QmlSettings::refreshAllKeys()
     emit hideCursorChanged();
     emit audioVideoDisabledChanged();
     emit resolutionLocalPS4Changed();
+    emit qualityLabelsChanged();
     emit resolutionRemotePS4Changed();
+    emit qualityLabelsChanged();
     emit resolutionLocalPS5Changed();
+    emit qualityLabelsChanged();
     emit resolutionRemotePS5Changed();
+    emit qualityLabelsChanged();
     emit disconnectActionChanged();
     emit suspendActionChanged();
     emit logVerboseChanged();
@@ -2036,9 +2057,13 @@ void QmlSettings::refreshAllKeys()
     emit displayTargetTrcChanged();
     emit fullscreenDoubleClickChanged();
     emit fpsLocalPS4Changed();
+    emit qualityLabelsChanged();
     emit fpsRemotePS4Changed();
+    emit qualityLabelsChanged();
     emit fpsLocalPS5Changed();
+    emit qualityLabelsChanged();
     emit fpsRemotePS5Changed();
+    emit qualityLabelsChanged();
     emit bitrateLocalPS4Changed();
     emit bitrateRemotePS4Changed();
     emit bitrateLocalPS5Changed();

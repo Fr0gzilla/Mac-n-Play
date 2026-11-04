@@ -259,8 +259,11 @@ static void msg_handler(QtMsgType type, const QMessageLogContext &context, const
     }
     // pendant une partie, le message rejoint aussi le journal de la partie
     QMutexLocker lock(&chiaki_log_mutex);
-    if (chiaki_log_ctx)
+    if (chiaki_log_ctx) {
+        session_log_from_qt = true;
         chiaki_log(chiaki_log_ctx, chiaki_level, "%s", qPrintable(msg));
+        session_log_from_qt = false;
+    }
 }
 
 // préréglage de la bibliothèque (1 = 360p … 4 = 1080p) d'après la hauteur de l'image
@@ -344,7 +347,8 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
         connect(settings_qml, changed, connected_controllers, &ConnectedControllers::applyStreamMenuShortcut);
     connect(settings, &Settings::CurrentProfileChanged, this, &QmlBackend::profileChanged);
     consoles = new ConsoleRegistry(settings, this);
-    diagnostic = new ConnectionDiagnostic(settings, consoles, this);
+    psn_account = new PsnAccount(settings, this);
+    diagnostic = new ConnectionDiagnostic(settings, consoles, psn_account, this);
     // MACNPLAY_DIAGNOSTIC=1 : lance le diagnostic au démarrage (résultat dans le journal)
     if (qEnvironmentVariableIsSet("MACNPLAY_DIAGNOSTIC"))
         QTimer::singleShot(STARTUP_DIAGNOSTIC_DELAY_MS, diagnostic, &ConnectionDiagnostic::start);
@@ -357,7 +361,6 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
     // branché avant refresh() : les manettes déjà reliées au lancement reçoivent aussi leur affectation
     connect(connected_controllers, &ConnectedControllers::listChanged, controller_mapping, &ControllerMappingController::applySavedMappings);
     connected_controllers->refresh();
-    psn_account = new PsnAccount(settings, this);
     connect(psn_account, &PsnAccount::tokensReady, consoles, &ConsoleRegistry::refreshPsnConsoles);
     connect(psn_account, &PsnAccount::accountForgotten, consoles, &ConsoleRegistry::clearPsnConsoles);
     psn_auto_connect_timer = new QTimer(this);
@@ -454,6 +457,7 @@ QmlBackend::~QmlBackend()
     frame_thread->parent()->deleteLater();
     psn_connection_thread.quit();
     psn_connection_thread.wait();
+    delete retired_settings;
 }
 
 QmlMainWindow *QmlBackend::qmlWindow() const
@@ -538,9 +542,14 @@ void QmlBackend::profileChanged()
     QString profile = settings->GetCurrentProfile();
     Settings *settings_copy = new Settings(profile);
     // l'ancien profil n'est pas détruit tout de suite : une requête PSN en cours peut encore
-    // s'en servir. Il est libéré à la fermeture de l'appli (enfant de ce contrôleur).
+    // s'en servir. On le garde jusqu'au changement suivant (un seul à la fois, pas de fuite),
+    // et il n'envoie plus rien à l'appli.
     if(settings_allocd)
-        settings->setParent(this);
+    {
+        delete retired_settings;
+        retired_settings = settings;
+        retired_settings->disconnect();
+    }
     settings_allocd = true;
     settings = settings_copy;
     controller_mapping->setSettings(settings);

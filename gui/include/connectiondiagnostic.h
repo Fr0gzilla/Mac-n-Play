@@ -13,6 +13,7 @@
 
 class QNetworkAccessManager;
 class ConsoleRegistry;
+class PsnAccount;
 class Settings;
 
 class ConnectionDiagnostic : public QObject
@@ -23,7 +24,7 @@ class ConnectionDiagnostic : public QObject
     Q_PROPERTY(QVariantList results READ results NOTIFY changed)
 
 public:
-    ConnectionDiagnostic(Settings *settings, ConsoleRegistry *consoles, QObject *parent = nullptr);
+    ConnectionDiagnostic(Settings *settings, ConsoleRegistry *consoles, PsnAccount *psn, QObject *parent = nullptr);
     void setSettings(Settings *settings) { this->settings = settings; }
 
     bool running() const { return is_running; }
@@ -45,6 +46,7 @@ private:
 
     Settings *settings;
     ConsoleRegistry *consoles;
+    PsnAccount *psn;
     QNetworkAccessManager *network;
     QElapsedTimer internet_timer;
     bool is_running = false;

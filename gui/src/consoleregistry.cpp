@@ -557,6 +557,7 @@ void ConsoleRegistry::refreshPsnConsoles()
     for(const auto &host : settings->GetRegisteredHosts())
         request.registered_nicknames.insert(host.GetServerNickname());
     request.registered_ps4s = settings->GetPS4RegisteredHostsRegistered();
+    request.generation = psn_generation;
     if(request.token.isEmpty())
         return;
     psn_consoles_watcher.setFuture(QtConcurrent::run(&ConsoleRegistry::fetchPsnConsoles, request));
@@ -564,9 +565,26 @@ void ConsoleRegistry::refreshPsnConsoles()
 
 void ConsoleRegistry::onPsnConsolesFetched()
 {
-    const PsnConsoles fetched = psn_consoles_watcher.result();
+    PsnConsoles fetched = psn_consoles_watcher.result();
+    if(fetched.generation != psn_generation)
+    {
+        // réponse pour le compte d'avant la déconnexion : on l'ignore et on redemande pour l'actuel
+        qCInfo(logConsoles) << "Consoles du compte PSN : réponse périmée ignorée";
+        refreshPsnConsoles();
+        return;
+    }
     if(!fetched.valid)
         return;
+    if(!fetched.ps5_received)
+    {
+        // panne passagère : on garde les PS5 déjà connues plutôt que de les faire disparaître
+        for(auto it = psn_nickname_hosts.cbegin(); it != psn_nickname_hosts.cend(); ++it)
+            if(it.value().IsPS5())
+                fetched.by_nickname.insert(it.key(), it.value());
+        for(auto it = psn_hosts.cbegin(); it != psn_hosts.cend(); ++it)
+            if(it.value().IsPS5())
+                fetched.usable.insert(it.key(), it.value());
+    }
     psn_hosts = fetched.usable;
     psn_nickname_hosts = fetched.by_nickname;
     qCInfo(logConsoles) << "Consoles du compte PSN à jour :" << psn_hosts.size() << "utilisable(s) à distance";
@@ -575,6 +593,7 @@ void ConsoleRegistry::onPsnConsolesFetched()
 
 void ConsoleRegistry::clearPsnConsoles()
 {
+    psn_generation++;
     if(psn_hosts.isEmpty() && psn_nickname_hosts.isEmpty())
         return;
     psn_hosts.clear();
@@ -587,6 +606,7 @@ void ConsoleRegistry::clearPsnConsoles()
 ConsoleRegistry::PsnConsoles ConsoleRegistry::fetchPsnConsoles(PsnRequest request)
 {
     PsnConsoles out;
+    out.generation = request.generation;
     ChiakiHolepunchDeviceInfo *ps5_devices = nullptr;
     size_t ps5_count = 0;
     ChiakiLog log;
@@ -595,7 +615,10 @@ ConsoleRegistry::PsnConsoles ConsoleRegistry::fetchPsnConsoles(PsnRequest reques
     {
         const ChiakiErrorCode err = chiaki_holepunch_list_devices(request.token.toUtf8().constData(), CHIAKI_HOLEPUNCH_CONSOLE_TYPE_PS5, &ps5_devices, &ps5_count, &log);
         if(err == CHIAKI_ERR_SUCCESS)
+        {
+            out.ps5_received = true;
             break;
+        }
         qCWarning(logConsoles) << "Consoles PS5 du compte : échec de la demande" << attempt << "/" << PSN_DEVICES_TRIES;
         ps5_count = 0;
     }

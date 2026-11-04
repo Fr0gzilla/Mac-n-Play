@@ -786,6 +786,7 @@ signals:
     void placeboChanged();
 
 private:
+    void connectSettings();
     bool dpadComboClashesWithMenu(uint a, uint b, uint c, uint d) const;
     Settings *settings = {};
     QStringList audio_in_devices;

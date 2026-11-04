@@ -12,6 +12,8 @@
 #include <QVector>
 #include <QThread>
 
+thread_local bool session_log_from_qt = false;
+
 static void LogCb(ChiakiLogLevel level, const char *msg, void *user);
 
 SessionLog::SessionLog(StreamSession *session, uint32_t level_mask, const QString &filename, bool sanitize)
@@ -74,11 +76,13 @@ void SessionLog::Log(ChiakiLogLevel level, const char *msg)
 	// Check if we're shutting down - if so, skip file logging
 	if(shutdown.loadRelaxed())
 	{
-		chiaki_log_cb_print(level, output_msg, nullptr);
+		if(!session_log_from_qt)
+			chiaki_log_cb_print(level, output_msg, nullptr);
 		return;
 	}
 
-	chiaki_log_cb_print(level, output_msg, nullptr);
+	if(!session_log_from_qt)
+		chiaki_log_cb_print(level, output_msg, nullptr);
 
 	QMutexLocker lock(&file_mutex);
 	if(file && !shutdown.loadRelaxed())

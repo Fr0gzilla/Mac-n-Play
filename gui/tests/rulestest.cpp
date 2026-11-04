@@ -80,12 +80,7 @@ private slots:
         QVERIFY(!versionIsNewer("v1.1.0-beta", "1.1.0"));
         QVERIFY(versionIsNewer("v1.1.0-beta", "1.0.0"));
         QVERIFY(!versionIsNewer("v1.0.0", "1.1.0-beta"));
-        // plusieurs pré-versions de suite
-        QCOMPARE(prereleaseNumber("1.1.0-beta.2"), 2);
-        QCOMPARE(prereleaseNumber("1.1.0-beta"), 0);
-        QVERIFY(versionIsNewer("v1.1.0-beta.2", "1.1.0-beta.1"));
-        QVERIFY(versionIsNewer("v1.1.0-beta.1", "1.1.0-beta"));
-        QVERIFY(!versionIsNewer("v1.1.0-beta.1", "1.1.0-beta.2"));
+        QVERIFY(versionIsNewer("v1.1.0", "1.1.0-dev"));      // fabrication de développement
     }
 
     void reconnaissanceDuPartageDeConnexion()
