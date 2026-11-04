@@ -1998,7 +1998,6 @@ void QmlSettings::setSettings(Settings *new_settings)
     connectSettings();
     refreshAllKeys();
     emit ps4ProHostsChanged();
-    emit qualityLabelsChanged();
 }
 
 QString QmlSettings::activeConsole() const
@@ -2023,13 +2022,9 @@ void QmlSettings::refreshAllKeys()
     emit hideCursorChanged();
     emit audioVideoDisabledChanged();
     emit resolutionLocalPS4Changed();
-    emit qualityLabelsChanged();
     emit resolutionRemotePS4Changed();
-    emit qualityLabelsChanged();
     emit resolutionLocalPS5Changed();
-    emit qualityLabelsChanged();
     emit resolutionRemotePS5Changed();
-    emit qualityLabelsChanged();
     emit disconnectActionChanged();
     emit suspendActionChanged();
     emit logVerboseChanged();
@@ -2057,13 +2052,9 @@ void QmlSettings::refreshAllKeys()
     emit displayTargetTrcChanged();
     emit fullscreenDoubleClickChanged();
     emit fpsLocalPS4Changed();
-    emit qualityLabelsChanged();
     emit fpsRemotePS4Changed();
-    emit qualityLabelsChanged();
     emit fpsLocalPS5Changed();
-    emit qualityLabelsChanged();
     emit fpsRemotePS5Changed();
-    emit qualityLabelsChanged();
     emit bitrateLocalPS4Changed();
     emit bitrateRemotePS4Changed();
     emit bitrateLocalPS5Changed();
@@ -2112,6 +2103,7 @@ void QmlSettings::refreshAllKeys()
     emit currentProfileChanged();
     emit profilesChanged();
     refreshAllPlaceboKeys();
+    emit qualityLabelsChanged();
 }
 
 void QmlSettings::refreshAllPlaceboKeys()

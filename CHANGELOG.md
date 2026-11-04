@@ -20,6 +20,7 @@
   - jeton PSN refusé compté deux fois ;
   - compte PSN pas déconnecté à l'import de réglages ;
   - réglage PS4 Pro perdu dans les autres profils.
+- L'appli a son propre identifiant macOS (`com.macnplay.MacnPlay`) : permissions séparées de chiaki-ng (l'accès au micro est redemandé une fois).
 - Code : restes de chiaki-ng inutiles sur Mac retirés, tests automatiques à chaque envoi, vérification des traductions, mise en forme du code (`.clang-format`).
 
 ## 1.1.0-beta — 3 novembre 2026 (pré-version)

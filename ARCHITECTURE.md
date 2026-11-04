@@ -162,9 +162,25 @@ cmake --build build --target macnplay-rules-test && ctest --test-dir build -R ma
 
 Le moteur réseau (`lib/`, en C : protocole Remote Play de Sony) et le rendu vidéo
 (`gui/src/qmlmainwindow.cpp`) viennent de [chiaki-ng](https://github.com/streetpea/chiaki-ng)
-et sont gardés tels quels. Ils sont très techniques, et les modifier sans tests risquerait
-de casser l'image ou la connexion. La réorganisation MVC concerne la couche Mac'n'Play :
-l'interface et ses contrôleurs.
+et ne sont modifiés qu'avec une bonne raison. Ils sont très techniques, et les modifier
+sans tests risquerait de casser l'image ou la connexion. La réorganisation MVC concerne
+la couche Mac'n'Play : l'interface et ses contrôleurs.
+
+### Modifications de Mac'n'Play dans le code hérité
+
+À reporter lors d'une mise à jour depuis chiaki-ng. Les changements récents sont commentés
+« Mac'n'Play » dans le code ; les plus anciens se retrouvent par `git log -- lib`.
+
+| Fichier | Changement | Pourquoi |
+|---|---|---|
+| `lib/src/videoreceiver.c` | Image complète redemandée à la console quand le décodeur refuse une image | Triangles et couleurs délavées au début d'une partie |
+| `lib/src/videoreceiver.c` | Calcul des images perdues sur 16 bits | Nombre faux au passage du compteur à zéro |
+| `lib/src/ctrl.c` | Messages trop grands pour la mémoire de réception refusés | Débordement de mémoire possible |
+| `lib/src/takion.c` | Taille vérifiée avant de lire un paquet court, mémoire libérée sur les chemins d'erreur | Lecture hors limites, fuites |
+| `lib/src/ctrl.c` | Taille de paquet en `size_t` | Troncature des grands paquets |
+| `lib/src/streamconnection.c` | Échec d'allocation vérifié, mémoire libérée sur erreur | Plantage, fuite |
+| `lib/src/discovery.c` | Adresse de réponse en `sockaddr_storage` | Adresses IPv6 tronquées |
+| `lib/src/reorderqueue.c` | Case vidée après sa sortie de la file | Réutilisation d'une donnée déjà libérée |
 
 Ce qui ne servait pas sur Mac a été retiré du dépôt : versions Windows, Linux (Flatpak, AppImage),
 Steam Deck, Nintendo Switch, artwork Steam et documentation de chiaki-ng. On les retrouve dans

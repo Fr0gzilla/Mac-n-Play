@@ -25,7 +25,9 @@ Merci de votre intérêt ! Quelques repères pour que les contributions restent 
   fichiers propres à Mac'n'Play.
 - **Nouveaux fichiers** : en-tête `// SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL`.
 - Le moteur réseau (`lib/`) et le rendu vidéo (`gui/src/qmlmainwindow.cpp`) viennent de
-  [chiaki-ng](https://github.com/streetpea/chiaki-ng) : n'y touchez qu'avec une bonne raison.
+  [chiaki-ng](https://github.com/streetpea/chiaki-ng) : n'y touchez qu'avec une bonne raison,
+  commentez le changement « Mac'n'Play » et ajoutez-le au tableau « Modifications de
+  Mac'n'Play dans le code hérité » d'`ARCHITECTURE.md`.
 
 ## Commits et propositions
 

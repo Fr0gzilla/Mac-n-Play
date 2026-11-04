@@ -1,4 +1,6 @@
-> **Pré-version** à essayer : elle n'a pas encore été testée en vraie partie après la réorganisation du code. Pour une version éprouvée, prenez la 1.0.0.
+> **Vous avez installé la 1.1.0-beta ?** Elle ne vous préviendra pas de cette version (un défaut de son numéro de version, corrigé ici) : téléchargez la 1.1.0 ci-dessous à la main. Les versions suivantes seront bien annoncées dans l'appli.
+>
+> L'accès au micro sera redemandé une fois : l'appli a maintenant son propre identifiant macOS, distinct de chiaki-ng.
 
 **Pour Mac avec puce Apple (M1 à M5), macOS 15 ou plus récent.**
 
@@ -13,6 +15,8 @@
 - **Journal** à copier en un clic pour signaler un problème.
 - **Nouvelle icône** au format de macOS 26.
 - Le vrai nom de votre PS4 sur sa carte, au lieu de « Main PS4 Console ».
+- **Image propre dès le début d'une partie** : plus de triangles ni de couleurs délavées quand la connexion perd la première image.
+- **Plus sûr** : le journal copié masque vos adresses et votre pseudo, l'export des réglages ne contient plus vos identifiants PSN.
 
 ### Installation
 

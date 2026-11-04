@@ -163,6 +163,10 @@ endif()
 # macOS impose à l'appli le numéro inscrit dans son paquet : ce doit être celui de Mac'n'Play
 # (et non celui de chiaki-ng, 1.10.0, qui cachait toute mise à jour), en chiffres seulement
 string(REGEX MATCH "^[0-9]+(\\.[0-9]+)*" MACNPLAY_BUNDLE_VERSION "${MACNPLAY_VERSION}")
+# fabrication de test sans numéro (« dev-abc1234 ») : 0.0.0, jamais plus récente qu'une vraie version
+if(NOT MACNPLAY_BUNDLE_VERSION)
+	set(MACNPLAY_BUNDLE_VERSION "0.0.0")
+endif()
 
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fanalyzer")
 set_target_properties(chiaki PROPERTIES
@@ -170,8 +174,8 @@ set_target_properties(chiaki PROPERTIES
 		MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/MacOSXBundleInfo.plist.in"
 		MACOSX_BUNDLE_BUNDLE_NAME "Mac'n'Play"
 		MACOSX_BUNDLE_BUNDLE_VERSION ${MACNPLAY_BUNDLE_VERSION}
-		MACOSX_BUNDLE_COPYRIGHT "thestr4ng3r (AGPLv3)"
-		MACOSX_BUNDLE_GUI_IDENTIFIER "org.streetpea.chiaking"
+		MACOSX_BUNDLE_COPYRIGHT "Fr0gzilla (Mac'n'Play), Street Pea et thestr4ng3r (chiaki-ng, Chiaki) — AGPLv3"
+		MACOSX_BUNDLE_GUI_IDENTIFIER "com.macnplay.MacnPlay"
 		MACOSX_BUNDLE_ICON_FILE chiaking.icns
 		RESOURCE "${RESOURCE_FILES}")
 
