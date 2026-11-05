@@ -1,6 +1,6 @@
 # Historique des versions
 
-## En cours (prochaine version)
+## 1.1.0 — 5 novembre 2026
 
 - Sécurité : journal copié anonymisé (adresses, identifiants, pseudo, noms des consoles masqués), et anonymisé dès l'écriture quand « Masquer les adresses » est coché ; export des réglages sans les jetons du compte PSN ; vérification des nouvelles versions désactivable.
 - Consoles désignées par une clé stable (adresse MAC, identifiant PSN) plutôt que par leur rang dans la liste.

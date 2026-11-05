@@ -16,6 +16,7 @@
 - **Nouvelle icône** au format de macOS 26.
 - Le vrai nom de votre PS4 sur sa carte, au lieu de « Main PS4 Console ».
 - **Image propre dès le début d'une partie** : plus de triangles ni de couleurs délavées quand la connexion perd la première image.
+- **Menu en jeu (Ctrl+O)** fluide, et immédiat après sa première ouverture.
 - **Plus sûr** : le journal copié masque vos adresses et votre pseudo, l'export des réglages ne contient plus vos identifiants PSN.
 
 ### Installation
