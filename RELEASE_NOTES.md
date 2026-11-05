@@ -1,8 +1,14 @@
-> **Vous avez installé la 1.1.0-beta ?** Elle ne vous préviendra pas de cette version (un défaut de son numéro de version, corrigé ici) : téléchargez la 1.1.0 ci-dessous à la main. Les versions suivantes seront bien annoncées dans l'appli.
+> **Vous avez installé la 1.1.0-beta ?** Elle ne vous préviendra pas de cette version (un défaut de son numéro de version, corrigé depuis la 1.1.0) : téléchargez-la ci-dessous à la main. Les versions suivantes seront bien annoncées dans l'appli.
 >
 > L'accès au micro sera redemandé une fois : l'appli a maintenant son propre identifiant macOS, distinct de chiaki-ng.
 
 **Pour Mac avec puce Apple (M1 à M5), macOS 15 ou plus récent.**
+
+### Correctifs de la 1.1.1
+
+- **macOS 13 et 14** : l'appli s'ouvrait puis se fermait sans explication. macOS indique maintenant clairement qu'il faut macOS 15.
+- **« Tester ma connexion »** affiche « Internet répond en X ms », sans promettre la fluidité de la partie.
+- **Homebrew** : `brew uninstall --zap macnplay` efface aussi le cache et l'état des fenêtres.
 
 ### Nouveautés de la 1.1
 

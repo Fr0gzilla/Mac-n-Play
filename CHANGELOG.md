@@ -1,6 +1,6 @@
 # Historique des versions
 
-## En cours (prochaine version)
+## 1.1.1 — 5 novembre 2026
 
 - « Tester ma connexion » dit « Internet répond en X ms » : la mesure vise un serveur proche de chez vous, pas votre console.
 - Choix de la console de « L'essentiel » sorti des écrans vers les règles métier, avec son test.
