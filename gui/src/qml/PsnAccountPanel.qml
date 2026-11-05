@@ -14,7 +14,9 @@ Rectangle {
     property real cardWidth: 0
     id: accountPanel
     readonly property var p: Chiaki.psn.profile
-    visible: !!p.onlineId && !Chiaki.settings.streamerMode && cardWidth > 1350
+    // la carte l'affiche seulement sur une console associée
+    property bool shown: true
+    visible: shown && !!p.onlineId && !Chiaki.settings.streamerMode && cardWidth > 1350
     anchors {
         horizontalCenter: parent.horizontalCenter
         horizontalCenterOffset: 20

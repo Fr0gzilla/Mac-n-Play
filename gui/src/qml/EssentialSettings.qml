@@ -13,22 +13,25 @@ import "controls" as C
 // regroupés par thème. Les réglages détaillés restent dans « Tous les réglages ».
 Flickable {
     id: essentials
-    // console connectée : d'abord une console allumée et vue sur le réseau, sinon une console connue
+    // console réglée : d'abord une console associée et allumée, sinon une console associée, sinon une console vue sur le réseau
     // console choisie en haut des Paramètres (s'il y en a plusieurs) : ses réglages propres sont affichés ici
     property var selectedConsole: null
     readonly property string consoleTag: selectedConsole ? selectedConsole.name : ""
     readonly property var detectedHost: {
         if (selectedConsole)
             return selectedConsole;
-        let known = null;
+        // une console associée passe avant celle d'un voisin vue sur le réseau mais jamais associée
+        let registered = null, other = null;
         for (let i = 0; i < Chiaki.consoles.list.length; i++) {
             let host = Chiaki.consoles.list[i];
-            if (host.discovered && host.state === "ready")
+            if (host.registered && host.discovered && host.state === "ready")
                 return host;
-            if (!known && (host.discovered || host.registered))
-                known = host;
+            if (!registered && host.registered)
+                registered = host;
+            if (!other && host.discovered)
+                other = host;
         }
-        return known;
+        return registered || other;
     }
     // console dont on règle l'image (0 = PS4, 1 = PS5), partagée avec la page détaillée
     readonly property int consoleIndex: detectedHost && !detectedHost.ps5 ? 0 : 1

@@ -847,6 +847,7 @@
 		{ "PlayStation servers can't be reached (%1). Check the Internet connection.", "Les serveurs PlayStation sont injoignables (%1). Vérifiez la connexion à Internet." },
 		{ "Reachable but slow (%1 ms to answer): playing over the Internet may stutter.", "Joignables mais lents (%1 ms pour répondre) : le jeu par Internet risque de saccader." },
 		{ "PlayStation servers reachable (%1 ms).", "Serveurs PlayStation joignables (%1 ms)." },
+		{ "PlayStation servers reachable.", "Serveurs PlayStation joignables." },
 		{ "This network intercepts secure connections (school or company network?): PlayStation servers refuse it, so playing over the Internet won't work here. Use another network, for example your phone's connection.", "Ce réseau intercepte les connexions sécurisées (réseau d'école ou d'entreprise ?) : les serveurs PlayStation le refusent, le jeu par Internet ne marchera donc pas ici. Utilisez un autre réseau, par exemple le partage de connexion de votre téléphone." },
 		{ "Can't start the game", "Impossible de lancer la partie" },
 		{ "The console is waking up but its name is unknown. Wait a few seconds, then try again.", "La console se réveille mais son nom est inconnu. Attendez quelques secondes, puis réessayez." },

@@ -553,9 +553,10 @@ Item {
         id: separateMenuWindow
         transientParent: view.hostWindow
         x: separateMenuX
-        y: menuController.open ? separateMenuY : separateMenuY + streamMenuHeight
+        y: separateMenuY
         width: separateMenuWidth > 0 ? separateMenuWidth : view.width
         height: streamMenuHeight
+        alive: useSeparateMenuWindow && !!Chiaki.session
         open: useSeparateMenuWindow && menuController.open
         closing: useSeparateMenuWindow && menuController.closing
         onCloseRequested: menuController.close()

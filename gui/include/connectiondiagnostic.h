@@ -38,7 +38,7 @@ signals:
 private:
     void checkLocalNetwork();
     void checkInternet();
-    void sendInternetProbe(bool first);
+    void measureLatency(int remaining);
     void checkPsnAccount();
     void checkConsole();
     void add(const QString &title, const QString &status, const QString &detail);
@@ -49,6 +49,8 @@ private:
     PsnAccount *psn;
     QNetworkAccessManager *network;
     QElapsedTimer internet_timer;
+    // meilleur aller-retour mesuré vers Sony (ms), -1 tant qu'aucune mesure n'a abouti
+    qint64 best_latency = -1;
     bool is_running = false;
     QVariantList check_results;
 };

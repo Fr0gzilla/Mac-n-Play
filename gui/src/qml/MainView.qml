@@ -299,10 +299,12 @@ Pane {
                 }
             }
 
-            // compte PSN : avatar, pseudo, PS Plus, niveau et trophées, entre les boutons et la console
+            // compte PSN : avatar, pseudo, PS Plus, niveau et trophées, entre les boutons et la console ;
+            // seulement sur une console associée : une console vue sur le Wi-Fi peut être celle d'un autre
             PsnAccountPanel {
                 id: accountPanel
                 cardWidth: delegate.width
+                shown: !!modelData.registered
             }
 
             // nom, étiquettes et boutons en bas à gauche, comme une bannière de l'écran d'accueil

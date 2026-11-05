@@ -12,12 +12,17 @@
 #include <QNetworkAccessManager>
 #include <QNetworkInterface>
 #include <QNetworkReply>
+#include <QTcpSocket>
+#include <QTimer>
 
 // serveur PlayStation déjà utilisé par l'appli (consoles du compte) : s'il répond, même par
 // un refus, Internet et les serveurs de Sony sont joignables
 static const char *SONY_CHECK_URL = "https://web.np.playstation.com/";
-// au-delà, la connexion est lente pour jouer à distance (millisecondes pour une réponse)
-static const qint64 SLOW_RESPONSE_MS = 400;
+static const char *SONY_CHECK_HOST = "web.np.playstation.com";
+// au-delà, la connexion est lente pour jouer à distance (millisecondes d'aller-retour)
+static const qint64 SLOW_RESPONSE_MS = 150;
+// nombre de mesures du temps d'aller-retour ; on garde la meilleure
+static const int LATENCY_SAMPLES = 3;
 
 ConnectionDiagnostic::ConnectionDiagnostic(Settings *settings, ConsoleRegistry *consoles, PsnAccount *psn, QObject *parent)
     : QObject(parent), settings(settings), consoles(consoles), psn(psn), network(new QNetworkAccessManager(this))
@@ -111,20 +116,14 @@ void ConnectionDiagnostic::checkConsole()
 
 void ConnectionDiagnostic::checkInternet()
 {
-    // deux demandes : la première ouvre la connexion (nom de domaine, chiffrement),
-    // la seconde la réutilise et donne un temps de réponse proche de la vraie latence
-    sendInternetProbe(true);
-}
-
-void ConnectionDiagnostic::sendInternetProbe(bool first)
-{
+    // une demande chiffrée vérifie que Sony répond sans interception, puis quelques
+    // ouvertures de connexion mesurent l'aller-retour : le temps de réponse du serveur web
+    // de Sony (plusieurs centaines de ms) ne dit rien de la latence en jeu
     QNetworkRequest request{QUrl(QString::fromLatin1(SONY_CHECK_URL))};
     request.setTransferTimeout(8000);
-    internet_timer.start();
     QNetworkReply *reply = network->head(request);
-    connect(reply, &QNetworkReply::finished, this, [this, reply, first] {
+    connect(reply, &QNetworkReply::finished, this, [this, reply] {
         reply->deleteLater();
-        const qint64 elapsed = internet_timer.elapsed();
         if(reply->error() == QNetworkReply::SslHandshakeFailedError)
         {
             // le réseau (école, entreprise) remplace le certificat de Sony par celui de son pare-feu
@@ -138,17 +137,50 @@ void ConnectionDiagnostic::sendInternetProbe(bool first)
             finish();
             return;
         }
-        if(first)
-        {
-            sendInternetProbe(false);
-            return;
-        }
-        if(elapsed > SLOW_RESPONSE_MS)
-            add(tr("Internet"), "warning", tr("Reachable but slow (%1 ms to answer): playing over the Internet may stutter.").arg(elapsed));
-        else
-            add(tr("Internet"), "ok", tr("PlayStation servers reachable (%1 ms).").arg(elapsed));
-        finish();
+        best_latency = -1;
+        measureLatency(LATENCY_SAMPLES);
     });
+}
+
+void ConnectionDiagnostic::measureLatency(int remaining)
+{
+    if(remaining == 0)
+    {
+        if(best_latency < 0)
+            add(tr("Internet"), "ok", tr("PlayStation servers reachable."));
+        else if(best_latency > SLOW_RESPONSE_MS)
+            add(tr("Internet"), "warning", tr("Reachable but slow (%1 ms to answer): playing over the Internet may stutter.").arg(best_latency));
+        else
+            add(tr("Internet"), "ok", tr("PlayStation servers reachable (%1 ms).").arg(best_latency));
+        finish();
+        return;
+    }
+    // le nom est déjà connu du système (demande précédente) : l'ouverture d'une connexion
+    // dure un aller-retour
+    QTcpSocket *socket = new QTcpSocket(this);
+    internet_timer.start();
+    connect(socket, &QTcpSocket::connected, this, [this, socket, remaining] {
+        const qint64 elapsed = internet_timer.elapsed();
+        if(best_latency < 0 || elapsed < best_latency)
+            best_latency = elapsed;
+        socket->disconnect(this);
+        socket->abort();
+        socket->deleteLater();
+        measureLatency(remaining - 1);
+    });
+    connect(socket, &QTcpSocket::errorOccurred, this, [this, socket] {
+        socket->disconnect(this);
+        socket->deleteLater();
+        measureLatency(0);
+    });
+    // pas de réponse en 3 s : on s'arrête avec ce qui a été mesuré
+    QTimer::singleShot(3000, socket, [this, socket] {
+        socket->disconnect(this);
+        socket->abort();
+        socket->deleteLater();
+        measureLatency(0);
+    });
+    socket->connectToHost(QString::fromLatin1(SONY_CHECK_HOST), 443);
 }
 
 void ConnectionDiagnostic::finish()

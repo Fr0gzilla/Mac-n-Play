@@ -4,7 +4,9 @@
 
 - Sécurité : journal copié anonymisé (adresses, identifiants, pseudo, noms des consoles masqués), et anonymisé dès l'écriture quand « Masquer les adresses » est coché ; export des réglages sans les jetons du compte PSN ; vérification des nouvelles versions désactivable.
 - Consoles désignées par une clé stable (adresse MAC, identifiant PSN) plutôt que par leur rang dans la liste.
-- « Tester ma connexion » mesure le temps de réponse sur une connexion déjà ouverte (moins de « lent » à tort).
+- « Tester ma connexion » mesure le vrai aller-retour vers Sony (et non le temps de réponse de son site web, qui affichait « lent » à tort).
+- Menu en jeu (Ctrl+O) : glissade fluide, et fenêtre gardée prête après la première ouverture (elle mettait 2 s à apparaître).
+- Une PS5 vue sur le Wi-Fi mais pas associée n'affiche plus votre compte PSN, et « L'essentiel » règle d'abord votre console associée.
 - Connexion automatique par Internet : la PS4 retenue est retrouvée dans le compte PSN, où Sony l'appelle « Main PS4 Console ».
 - Numéro de version de l'appli : macOS voyait 1.10.0 (celui de chiaki-ng), ce qui empêchait d'annoncer les nouvelles versions.
 - Image abîmée au début d'une partie (triangles, couleurs délavées) : une image complète est redemandée à la console dès qu'une image est refusée.
