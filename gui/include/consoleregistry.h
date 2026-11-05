@@ -105,6 +105,8 @@ public:
     void setPendingRegistration(const ConsoleEntry &entry) { pending_registration = entry; }
     const ConsoleEntry &pendingRegistration() const { return pending_registration; }
 
+    // rang, dans list, de la console réglée par « L'essentiel » (règle settingsConsoleIndex), -1 si aucune
+    Q_INVOKABLE int settingsConsoleIndex(const QVariantList &consoles) const;
     Q_INVOKABLE void wakeUp(const QString &key, QString nickname = QString());
     Q_INVOKABLE void setConsolePin(const QString &key, QString console_pin);
     Q_INVOKABLE void addManualHost(int index, const QString &address);

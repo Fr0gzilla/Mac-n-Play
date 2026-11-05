@@ -19,7 +19,10 @@ cask "macnplay" do
 
   zap trash: [
     "~/Library/Application Support/MacnPlay",
+    "~/Library/Caches/MacnPlay",
     "~/Library/Preferences/com.macnplay.MacnPlay.plist",
+    "~/Library/Preferences/com.macnplay.pl_render_params.plist",
+    "~/Library/Saved Application State/com.macnplay.MacnPlay.savedState",
   ]
 
   caveats <<~EOS

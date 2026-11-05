@@ -118,6 +118,17 @@ private slots:
         QCOMPARE(psnNameOfConsole("PS5-Salon", "PS4-955"), std::string("PS5-Salon"));
         QCOMPARE(psnNameOfConsole("", ""), std::string(""));  // aucune console retenue
     }
+
+    void consoleDeLessentiel()
+    {
+        // une PS5 voisine allumée ne passe pas avant la PS4 associée en mode repos
+        QCOMPARE(settingsConsoleIndex({{false, true, true}, {true, true, false}}), 1);
+        // la console associée et allumée passe avant tout
+        QCOMPARE(settingsConsoleIndex({{true, false, false}, {true, true, true}}), 1);
+        // aucune console associée : celle vue sur le réseau
+        QCOMPARE(settingsConsoleIndex({{false, false, false}, {false, true, false}}), 1);
+        QCOMPARE(settingsConsoleIndex({}), -1);
+    }
 };
 
 QTEST_APPLESS_MAIN(RulesTest)

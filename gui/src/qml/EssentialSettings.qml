@@ -20,18 +20,10 @@ Flickable {
     readonly property var detectedHost: {
         if (selectedConsole)
             return selectedConsole;
-        // une console associée passe avant celle d'un voisin vue sur le réseau mais jamais associée
-        let registered = null, other = null;
-        for (let i = 0; i < Chiaki.consoles.list.length; i++) {
-            let host = Chiaki.consoles.list[i];
-            if (host.registered && host.discovered && host.state === "ready")
-                return host;
-            if (!registered && host.registered)
-                registered = host;
-            if (!other && host.discovered)
-                other = host;
-        }
-        return registered || other;
+        // règle MacnPlayRules::settingsConsoleIndex : une console associée d'abord
+        const list = Chiaki.consoles.list;
+        const i = Chiaki.consoles.settingsConsoleIndex(list);
+        return i >= 0 ? list[i] : null;
     }
     // console dont on règle l'image (0 = PS4, 1 = PS5), partagée avec la page détaillée
     readonly property int consoleIndex: detectedHost && !detectedHost.ps5 ? 0 : 1

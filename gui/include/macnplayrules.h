@@ -162,5 +162,31 @@ namespace MacnPlayRules
             return "Main PS4 Console";
         return nickname;
     }
-}
 
+    // ---- console réglée dans « L'essentiel » ----
+
+    struct ConsoleFacts
+    {
+        bool registered;  // associée à ce Mac (ou venue du compte PSN)
+        bool discovered;  // vue sur le réseau local
+        bool ready;       // allumée (pas en mode repos)
+    };
+
+    // d'abord une console associée et allumée, sinon une console associée, sinon une console
+    // seulement vue sur le Wi-Fi (elle peut être celle de quelqu'un d'autre) ; -1 s'il n'y en a pas
+    inline int settingsConsoleIndex(const std::vector<ConsoleFacts> &consoles)
+    {
+        int registered = -1, other = -1;
+        for(int i = 0; i < int(consoles.size()); i++)
+        {
+            const ConsoleFacts &c = consoles[i];
+            if(c.registered && c.discovered && c.ready)
+                return i;
+            if(registered < 0 && c.registered)
+                registered = i;
+            if(other < 0 && c.discovered)
+                other = i;
+        }
+        return registered >= 0 ? registered : other;
+    }
+}

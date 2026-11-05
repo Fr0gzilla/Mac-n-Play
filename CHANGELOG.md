@@ -1,5 +1,11 @@
 # Historique des versions
 
+## En cours (prochaine version)
+
+- « Tester ma connexion » dit « Internet répond en X ms » : la mesure vise un serveur proche de chez vous, pas votre console.
+- Choix de la console de « L'essentiel » sorti des écrans vers les règles métier, avec son test.
+- Homebrew : `brew uninstall --zap` efface aussi le cache et l'état des fenêtres.
+
 ## 1.1.0 — 5 novembre 2026
 
 - Sécurité : journal copié anonymisé (adresses, identifiants, pseudo, noms des consoles masqués), et anonymisé dès l'écriture quand « Masquer les adresses » est coché ; export des réglages sans les jetons du compte PSN ; vérification des nouvelles versions désactivable.

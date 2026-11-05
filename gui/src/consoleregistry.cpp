@@ -650,3 +650,14 @@ ConsoleRegistry::PsnConsoles ConsoleRegistry::fetchPsnConsoles(PsnRequest reques
 }
 
 #include "consoleregistry.moc"
+
+int ConsoleRegistry::settingsConsoleIndex(const QVariantList &consoles) const
+{
+    std::vector<MacnPlayRules::ConsoleFacts> facts;
+    for(const QVariant &console : consoles)
+    {
+        const QVariantMap m = console.toMap();
+        facts.push_back({m.value("registered").toBool(), m.value("discovered").toBool(), m.value("state").toString() == "ready"});
+    }
+    return MacnPlayRules::settingsConsoleIndex(facts);
+}

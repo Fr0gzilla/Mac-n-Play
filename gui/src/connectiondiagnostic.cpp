@@ -149,9 +149,9 @@ void ConnectionDiagnostic::measureLatency(int remaining)
         if(best_latency < 0)
             add(tr("Internet"), "ok", tr("PlayStation servers reachable."));
         else if(best_latency > SLOW_RESPONSE_MS)
-            add(tr("Internet"), "warning", tr("Reachable but slow (%1 ms to answer): playing over the Internet may stutter.").arg(best_latency));
+            add(tr("Internet"), "warning", tr("Internet responds slowly (%1 ms): playing over the Internet may stutter.").arg(best_latency));
         else
-            add(tr("Internet"), "ok", tr("PlayStation servers reachable (%1 ms).").arg(best_latency));
+            add(tr("Internet"), "ok", tr("Internet responds in %1 ms.").arg(best_latency));
         finish();
         return;
     }
