@@ -4,6 +4,7 @@
 
 - « Tester ma connexion » dit « Internet répond en X ms » : la mesure vise un serveur proche de chez vous, pas votre console.
 - Choix de la console de « L'essentiel » sorti des écrans vers les règles métier, avec son test.
+- L'appli annonce macOS 15 minimum (elle disait 13 et plantait au lancement sur macOS 13 et 14 au lieu de prévenir) ; la fabrication vérifie ce minimum et la version de chaque OpenSSL embarquée.
 - Homebrew : `brew uninstall --zap` efface aussi le cache et l'état des fenêtres.
 
 ## 1.1.0 — 5 novembre 2026

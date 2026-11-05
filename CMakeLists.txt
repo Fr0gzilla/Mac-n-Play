@@ -65,11 +65,9 @@ include(CPack)
 set(CHIAKI_IS_SWITCH ${NSWITCH})
 
 if(APPLE)
-	if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "arm64")
-		set(CMAKE_OSX_DEPLOYMENT_TARGET 13.0 CACHE STRING "Minimum OS X deployment version" FORCE)
-	else()
-		set(CMAKE_OSX_DEPLOYMENT_TARGET 12.0 CACHE STRING "Minimum OS X deployment version" FORCE)
-	endif()
+	# Mac'n'Play : macOS 15 minimum, comme les bibliothèques Homebrew embarquées (Qt, ffmpeg…) ;
+	# annoncé dans l'Info.plist pour que macOS refuse clairement l'appli sur un système plus ancien
+	set(CMAKE_OSX_DEPLOYMENT_TARGET 15.0 CACHE STRING "Minimum OS X deployment version" FORCE)
 endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")

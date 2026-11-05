@@ -140,14 +140,27 @@ jobs:
             v=$(otool -l "$f" 2>/dev/null | awk '/LC_BUILD_VERSION/{f=1} f&&/minos/{print $2; exit}')
             if [[ -n "$v" && "${v%%.*}" -gt 15 ]]; then echo "trop récent ($v) : $f"; bad=1; fi
           done < <(find "Mac'n'Play.app" -type f \( -name '*.dylib' -o -perm +111 \))
+          # et l'appli doit annoncer ce minimum : sinon, sur un macOS plus ancien, elle plante au lancement sans message
+          min=$(/usr/libexec/PlistBuddy -c "Print LSMinimumSystemVersion" "Mac'n'Play.app/Contents/Info.plist")
+          echo "macOS minimum annoncé : $min"
+          if [[ "${min%%.*}" != 15 ]]; then echo "LSMinimumSystemVersion doit valoir 15"; bad=1; fi
           exit $bad
 
       - name: Check OpenSSL version
         run: |
-          # la vérification des certificats de Sony échoue avec OpenSSL 3.5 : il faut la 3.6 ou plus récente
-          v=$(strings "Mac'n'Play.app/Contents/Frameworks/libcrypto.3.dylib" | grep -m1 -oE 'OpenSSL 3\.[0-9]+' | cut -d. -f2)
-          echo "OpenSSL 3.$v embarquée"
-          [[ -n "$v" && "$v" -ge 6 ]]
+          # la vérification des certificats de Sony échoue avec OpenSSL 3.5 : il faut la 3.6 ou plus récente,
+          # pour chaque libcrypto embarquée (chiaki en utilise une, Qt et ffmpeg peuvent en apporter une autre)
+          bad=0; n=0
+          for f in "Mac'n'Play.app"/Contents/Frameworks/libcrypto.*.dylib; do
+            [[ -e "$f" ]] || continue
+            n=$((n+1))
+            v=$(strings "$f" | grep -m1 -oE 'OpenSSL [0-9]+\.[0-9]+\.[0-9]+' | cut -d' ' -f2)
+            echo "$(basename "$f") : OpenSSL $v"
+            major=${v%%.*}; minor=$(echo "$v" | cut -d. -f2)
+            if [[ -z "$v" ]] || (( major < 3 || (major == 3 && minor < 6) )); then echo "trop ancienne : $f"; bad=1; fi
+          done
+          [[ $n -gt 0 ]] || { echo "aucune libcrypto embarquée"; bad=1; }
+          exit $bad
 
       - name: Upload artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
