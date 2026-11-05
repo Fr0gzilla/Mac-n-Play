@@ -1,6 +1,6 @@
 cask "macnplay" do
-  version "1.0.0"
-  sha256 "db62731dc07b21b62a1bb2d187dd35c3ef1b6d34fc1886ec1aeaf6f7aa656010"
+  version "1.1.0"
+  sha256 "7d1737e377bedf3fed7c6fa45371dee109d262b2fb58ff32095af783e001bf19"
 
   url "https://github.com/Fr0gzilla/Mac-n-Play/releases/download/v#{version}/Mac-n-Play-#{version}.dmg"
   name "Mac'n'Play"
