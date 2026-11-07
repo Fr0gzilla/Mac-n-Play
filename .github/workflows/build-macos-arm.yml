@@ -148,6 +148,10 @@ jobs:
           for l in en fr de es it pt; do
             [[ -f "Mac'n'Play.app/Contents/Resources/$l.lproj/InfoPlist.strings" ]] || { echo "manque $l.lproj"; bad=1; }
           done
+          # le texte anglais existe en deux exemplaires (Info.plist et en.lproj) : ils doivent rester identiques
+          mic_plist=$(/usr/libexec/PlistBuddy -c "Print NSMicrophoneUsageDescription" "Mac'n'Play.app/Contents/Info.plist")
+          mic_en=$(plutil -extract NSMicrophoneUsageDescription raw -o - "Mac'n'Play.app/Contents/Resources/en.lproj/InfoPlist.strings")
+          if [[ "$mic_plist" != "$mic_en" ]]; then echo "demande du micro : Info.plist et en.lproj diffèrent"; bad=1; fi
           exit $bad
 
       - name: Check OpenSSL version
