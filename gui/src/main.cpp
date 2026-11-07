@@ -19,7 +19,7 @@ int main(int argc, char *argv[]) { return real_main(argc, argv); }
 #include <controllermanager.h>
 #include <discoverymanager.h>
 #include <qmlmainwindow.h>
-#include <frenchtranslator.h>
+#include <apptranslator.h>
 #include <QApplication>
 #include <QStyleHints>
 #include <QFileInfo>
@@ -202,8 +202,9 @@ int real_main(int argc, char *argv[])
 	// désactivé par défaut) : la manette et les flèches restaient bloquées sur le premier réglage
 	app.styleHints()->setTabFocusBehavior(Qt::TabFocusAllControls);
 
-	if(FrenchTranslator::Wanted())
-		app.installTranslator(new FrenchTranslator(&app));
+	const QString language = AppTranslator::WantedLanguage();
+	if(!language.isEmpty())
+		app.installTranslator(new AppTranslator(language, &app));
 
 #ifdef Q_OS_MACOS
 	// sur Mac, le Dock prend l'icône de l'appli elle-même (Assets.car ou .icns) :

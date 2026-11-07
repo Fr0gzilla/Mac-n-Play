@@ -1,4 +1,4 @@
-// Traductions françaises de l'interface : source unique, complétée à la main.
+// Traduction française de l'interface (voir apptranslator.h).
 // Chaque texte anglais de qsTr()/tr() a sa ligne { "anglais", "français" }.
 // Pour repérer les textes sans traduction : python3 scripts/check-translations.py
 		{ "Cancelling connection...", "Annulation de la connexion..." },

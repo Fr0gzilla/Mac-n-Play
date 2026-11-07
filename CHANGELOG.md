@@ -1,5 +1,10 @@
 # Historique des versions
 
+## En cours (prochaine version)
+
+- L'appli parle allemand, espagnol, italien et portugais, en plus du français et de l'anglais : elle suit la langue du Mac, ou celle choisie pour elle dans Réglages Système › Langue et région › Applications.
+- Vérification des traductions étendue à chaque langue (textes manquants, `%1` perdus).
+
 ## 1.1.1 — 5 novembre 2026
 
 - « Tester ma connexion » dit « Internet répond en X ms » : la mesure vise un serveur proche de chez vous, pas votre console.

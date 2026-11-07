@@ -22,7 +22,7 @@
 
 ---
 
-**Sommaire** : [Ce que fait l'appli](#ce-que-fait-lappli) · [Ce qu'il faut](#ce-quil-faut) · [Installation](#installation) · [Premiers pas](#premiers-pas) · [Utilisation](#utilisation) · [Raccourcis](#raccourcis) · [Mises à jour](#mises-à-jour) · [Vie privée](#vie-privée) · [En cas de problème](#en-cas-de-problème) · [Désinstaller](#désinstaller) · [État du projet](#état-du-projet) · [Contribuer](#fabriquer-lappli-et-contribuer) · [Licence](#licence-et-crédits)
+**Sommaire** : [Ce que fait l'appli](#ce-que-fait-lappli) · [Ce qu'il faut](#ce-quil-faut) · [Installation](#installation) · [Premiers pas](#premiers-pas) · [Utilisation](#utilisation) · [Raccourcis](#raccourcis) · [Mises à jour](#mises-à-jour) · [Vie privée](#vie-privée) · [En cas de problème](#en-cas-de-problème) · [Désinstaller](#désinstaller) · [État du projet](#état-du-projet) · [Contribuer](#fabriquer-lappli-et-contribuer) · [Traductions](#traductions) · [Licence](#licence-et-crédits)
 
 ## Ce que fait l'appli
 
@@ -39,7 +39,7 @@ Mac'n'Play affiche l'écran de votre PlayStation sur votre Mac (Remote Play) et 
 - **« Tester ma connexion »** : l'appli vérifie le réseau du Mac, Internet, le compte PSN et la console, et explique en clair ce qui ne va pas.
 - **Nouvelles versions signalées** sur l'accueil, avec un bouton pour les télécharger.
 - **Journal** à copier en un clic pour signaler un problème, avec vos adresses et votre pseudo masqués.
-- En français ou en anglais, selon la langue de votre Mac.
+- **En 6 langues** : français, anglais, allemand, espagnol, italien et portugais, selon la langue de votre Mac. Une autre langue pour Mac'n'Play seul se choisit dans Réglages Système › Général › Langue et région › Applications.
 
 ## Ce qu'il faut
 
@@ -205,6 +205,10 @@ Mac'n'Play est testé sur **PS4** avec une manette DualShock 4, en réseau local
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) : organisation du code (modèle MVC, rôle de chaque fichier, règles métier, journal, tests) et modifications apportées au code de chiaki-ng.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) : règles pour proposer une modification.
 
+## Traductions
+
+L'allemand, l'espagnol, l'italien et le portugais n'ont pas encore été relus par des personnes dont c'est la langue maternelle. Une phrase sonne mal ? [Ouvrez un ticket](https://github.com/Fr0gzilla/Mac-n-Play/issues) avec la bonne formulation. Pour ajouter une langue, voir [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
 ## Licence et crédits
 
 - Mac'n'Play est un logiciel libre, distribué sous licence **[GNU AGPL v3](COPYING)** (avec l'exception OpenSSL, voir [`LICENSES`](LICENSES)). Son code source complet est dans ce dépôt.
@@ -217,7 +221,7 @@ Mac'n'Play est testé sur **PS4** avec une manette DualShock 4, en réseau local
 
 ## English
 
-**Mac'n'Play** lets you play your PS4 or PS5 on your Mac with your controller (Remote Play). It is a macOS-focused version of the open source [chiaki-ng](https://github.com/streetpea/chiaki-ng) project. The interface follows your Mac's language (French or English).
+**Mac'n'Play** lets you play your PS4 or PS5 on your Mac with your controller (Remote Play). It is a macOS-focused version of the open source [chiaki-ng](https://github.com/streetpea/chiaki-ng) project. The interface is available in English, French, German, Spanish, Italian and Portuguese, following your Mac's language (or the one chosen for the app in System Settings › General › Language & Region › Applications).
 
 ### Requirements
 
@@ -263,6 +267,10 @@ Drag the app to the Trash. To remove settings too, delete `~/Library/Application
 ### Status
 
 Tested on **PS4** with a DualShock 4, on a local network and over the Internet (5G hotspot). PS5 is not tested yet; feedback is welcome in the [issues](https://github.com/Fr0gzilla/Mac-n-Play/issues).
+
+### Translations
+
+German, Spanish, Italian and Portuguese were translated without a native speaker's review yet. If a sentence sounds wrong, please [open an issue](https://github.com/Fr0gzilla/Mac-n-Play/issues) with the correct wording.
 
 ### License
 

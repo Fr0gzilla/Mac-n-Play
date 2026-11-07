@@ -75,8 +75,8 @@ set(SOURCE_FILES
 	src/qmlsvgprovider.cpp
 	include/systemdinhibit.h
 	src/systemdinhibit.cpp
-	include/frenchtranslator.h
-	src/frenchtranslator.cpp
+	include/apptranslator.h
+	src/apptranslator.cpp
 	)
 set(RESOURCE_FILES "")
 

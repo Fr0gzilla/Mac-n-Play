@@ -20,7 +20,7 @@ jobs:
       - name: Qt (Homebrew)
         run: brew install qt@6 ninja
 
-      - name: Traductions françaises complètes
+      - name: Traductions complètes (toutes les langues)
         run: python3 scripts/check-translations.py
 
       - name: Compilation et tests

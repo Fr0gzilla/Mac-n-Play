@@ -17,10 +17,13 @@ Merci de votre intérêt ! Quelques repères pour que les contributions restent 
   *pourquoi*, les noms disent *quoi*.
 - **Journaliser les étapes importantes** avec la catégorie du domaine (`qCInfo(logConsoles) << …`),
   en français. Jamais de jeton ni de mot de passe dans le journal.
-- **Textes de l'interface** : écrits en anglais dans `qsTr()`, traduits en français dans
-  `gui/include/frenchtranslations.inc`. Une phrase entière par texte (pas de morceaux à recoller).
-  `python3 scripts/check-translations.py` liste les textes sans traduction (les noms techniques,
-  comme « Lanczos » ou « HDR10 », n'en ont pas besoin).
+- **Textes de l'interface** : écrits en anglais dans `qsTr()`, traduits dans une table par langue,
+  `gui/include/translations/<langue>.inc` (français, allemand, espagnol, italien, portugais).
+  Une phrase entière par texte (pas de morceaux à recoller). Un nouveau texte doit être ajouté dans
+  **chaque** table : `python3 scripts/check-translations.py` liste ceux qui manquent et les
+  traductions qui ont perdu un `%1` (les noms techniques, comme « Lanczos » ou « HDR10 », n'ont pas
+  besoin de traduction). Pour ajouter une langue : une nouvelle table, une ligne dans
+  `gui/src/apptranslator.cpp` et une dans `CFBundleLocalizations` (`gui/MacOSXBundleInfo.plist.in`).
 - **Mise en forme** : `gui/.clang-format` (4 espaces, accolades sur leur propre ligne) pour les
   fichiers propres à Mac'n'Play.
 - **Nouveaux fichiers** : en-tête `// SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL`.
