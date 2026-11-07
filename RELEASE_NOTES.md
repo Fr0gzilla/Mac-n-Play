@@ -4,6 +4,10 @@
 
 **Pour Mac avec puce Apple (M1 à M5), macOS 15 ou plus récent.**
 
+### Correctif de la 1.2.1
+
+- La demande d'accès au micro s'affiche dans la bonne langue même quand le Mac a l'anglais puis une autre langue dans ses préférences.
+
 ### Nouveautés de la 1.2
 
 - **6 langues** : français, anglais, allemand, espagnol, italien et portugais du Brésil. L'appli suit la langue de votre Mac ; une autre se choisit dans Paramètres › Tous les réglages › Général › Langue, et s'applique tout de suite, sans relancer.

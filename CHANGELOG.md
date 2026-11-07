@@ -1,5 +1,10 @@
 # Historique des versions
 
+## 1.2.1 — 7 novembre 2026
+
+- La demande d'accès au micro a aussi son texte anglais dans un dossier de langue, comme les autres langues (conseil d'Apple, évite un mélange chez qui a l'anglais puis une autre langue dans ses préférences).
+- La fabrication vérifie que la demande du micro existe dans les 6 langues, et que le texte anglais est le même dans ses deux exemplaires.
+
 ## 1.2.0 — 7 novembre 2026
 
 - L'appli parle allemand, espagnol, italien et portugais du Brésil, en plus du français et de l'anglais : elle suit la langue du Mac, ou celle choisie dans Paramètres › Tous les réglages › Général › Langue, appliquée sans relancer. macOS retient ce choix pour ses propres messages.
