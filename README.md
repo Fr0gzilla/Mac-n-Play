@@ -39,7 +39,7 @@ Mac'n'Play affiche l'écran de votre PlayStation sur votre Mac (Remote Play) et 
 - **« Tester ma connexion »** : l'appli vérifie le réseau du Mac, Internet, le compte PSN et la console, et explique en clair ce qui ne va pas.
 - **Nouvelles versions signalées** sur l'accueil, avec un bouton pour les télécharger.
 - **Journal** à copier en un clic pour signaler un problème, avec vos adresses et votre pseudo masqués.
-- **En 6 langues** : français, anglais, allemand, espagnol, italien et portugais, selon la langue de votre Mac. Une autre langue pour Mac'n'Play seul se choisit dans Réglages Système › Général › Langue et région › Applications.
+- **En 6 langues** : français, anglais, allemand, espagnol, italien et portugais du Brésil. L'appli suit la langue de votre Mac ; une autre se choisit dans Paramètres › Général › Langue, sans relancer.
 
 ## Ce qu'il faut
 
@@ -167,6 +167,7 @@ Avec Homebrew : `brew upgrade --cask macnplay`.
 
 - **Tout reste sur votre Mac** : consoles associées, réglages, connexion au compte PSN, carte du compte et journal. Rien n'est envoyé au développeur.
 - L'appli ne parle qu'à **votre console**, aux **serveurs de Sony** (compte PSN, jeu par Internet) et à **GitHub** (vérification des nouvelles versions, désactivable).
+- Pour jouer **hors de chez vous**, l'appli interroge aussi des **serveurs STUN publics** (Google, Moonlight). Ils servent seulement à connaître votre adresse Internet, qu'ils voient donc passer.
 - Le **journal copié** pour un ticket masque vos adresses, identifiants, pseudo et noms de consoles.
 - L'**export des réglages** (Configuration › Exporter) contient vos associations de consoles, mais pas votre compte PSN : gardez ce fichier pour vous.
 
@@ -192,6 +193,7 @@ Glissez Mac'n'Play d'Applications vers la Corbeille. Pour effacer aussi vos rég
 - `~/Library/Caches/MacnPlay`
 - `~/Library/Preferences/com.macnplay.MacnPlay.plist`
 - `~/Library/Preferences/com.macnplay.pl_render_params.plist`
+- `~/Library/Saved Application State/com.macnplay.MacnPlay.savedState`
 
 Avec Homebrew, une seule commande fait tout : `brew uninstall --zap --cask macnplay`.
 
@@ -207,7 +209,7 @@ Mac'n'Play est testé sur **PS4** avec une manette DualShock 4, en réseau local
 
 ## Traductions
 
-L'allemand, l'espagnol, l'italien et le portugais n'ont pas encore été relus par des personnes dont c'est la langue maternelle. Une phrase sonne mal ? [Ouvrez un ticket](https://github.com/Fr0gzilla/Mac-n-Play/issues) avec la bonne formulation. Pour ajouter une langue, voir [`CONTRIBUTING.md`](CONTRIBUTING.md).
+L'allemand, l'espagnol, l'italien et le portugais (du Brésil) n'ont pas encore été relus par des personnes dont c'est la langue maternelle. Une phrase sonne mal ? [Ouvrez un ticket](https://github.com/Fr0gzilla/Mac-n-Play/issues) avec la bonne formulation. Pour ajouter une langue, voir [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Licence et crédits
 
@@ -221,7 +223,7 @@ L'allemand, l'espagnol, l'italien et le portugais n'ont pas encore été relus p
 
 ## English
 
-**Mac'n'Play** lets you play your PS4 or PS5 on your Mac with your controller (Remote Play). It is a macOS-focused version of the open source [chiaki-ng](https://github.com/streetpea/chiaki-ng) project. The interface is available in English, French, German, Spanish, Italian and Portuguese, following your Mac's language (or the one chosen for the app in System Settings › General › Language & Region › Applications).
+**Mac'n'Play** lets you play your PS4 or PS5 on your Mac with your controller (Remote Play). It is a macOS-focused version of the open source [chiaki-ng](https://github.com/streetpea/chiaki-ng) project. The interface is available in English, French, German, Spanish, Italian and Brazilian Portuguese, following your Mac's language or the one chosen in Settings › General › Language.
 
 ### Requirements
 
@@ -254,7 +256,7 @@ L'allemand, l'espagnol, l'italien et le portugais n'ont pas encore été relus p
 
 ### Privacy
 
-Everything stays on your Mac (paired consoles, settings, PSN sign-in, logs). The app only talks to your console, Sony's servers and GitHub (update check). The log you copy for a bug report hides addresses, identifiers, your PSN name and console names.
+Everything stays on your Mac (paired consoles, settings, PSN sign-in, logs). The app only talks to your console, Sony's servers, GitHub (update check) and, to play away from home, public STUN servers (Google, Moonlight) that only learn your Internet address. The log you copy for a bug report hides addresses, identifiers, your PSN name and console names.
 
 ### Troubleshooting
 
@@ -262,7 +264,7 @@ Use **Settings › All settings › Config › Test my connection**: it checks t
 
 ### Uninstall
 
-Drag the app to the Trash. To remove settings too, delete `~/Library/Application Support/MacnPlay`, `~/Library/Caches/MacnPlay` and `~/Library/Preferences/com.macnplay.*.plist`, or run `brew uninstall --zap --cask macnplay`.
+Drag the app to the Trash. To remove settings too, delete `~/Library/Application Support/MacnPlay`, `~/Library/Caches/MacnPlay`, `~/Library/Preferences/com.macnplay.*.plist` and `~/Library/Saved Application State/com.macnplay.MacnPlay.savedState`, or run `brew uninstall --zap --cask macnplay`.
 
 ### Status
 

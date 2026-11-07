@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>English</string>
+	<string>en</string>
 	<!-- langues de l'interface (include/translations) : macOS les propose dans Réglages Système ›
 	     Langue et région › Applications -->
 	<key>CFBundleLocalizations</key>

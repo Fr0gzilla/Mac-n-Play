@@ -63,7 +63,7 @@ Item {
                 Layout.preferredWidth: 400
                 firstInFocusChain: true
                 // chaque langue écrite dans sa propre langue, pour la retrouver même sans la lire
-                model: [qsTr("Same as the Mac"), "English", "Français", "Deutsch", "Español", "Italiano", "Português"]
+                model: [qsTr("Same as the Mac"), "English", "Français", "Deutsch", "Español", "Italiano", "Português (Brasil)"]
                 currentIndex: Math.max(0, codes.indexOf(Chiaki.settings.language))
                 onActivated: index => Chiaki.settings.language = codes[index]
             }

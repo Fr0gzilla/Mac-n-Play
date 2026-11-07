@@ -1,0 +1,2 @@
+/* demande d'accès au micro, traduite ; l'anglais est dans MacOSXBundleInfo.plist.in */
+"NSMicrophoneUsageDescription" = "O Mac'n'Play só usa o microfone quando você o ativa em um jogo, para falar com outros jogadores.";

@@ -250,6 +250,8 @@ void QmlSettings::setLanguage(const QString &language)
     settings->SetLanguage(language);
     AppTranslator::Apply(language);
     emit languageChanged();
+    // libellés calculés en C++ (« fps » / « i/s »…) : retranslate() ne les voit pas
+    emit qualityLabelsChanged();
 }
 
 bool QmlSettings::logVerbose() const

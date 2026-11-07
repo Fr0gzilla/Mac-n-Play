@@ -79,9 +79,16 @@ set(SOURCE_FILES
 	src/apptranslator.cpp
 	)
 set(RESOURCE_FILES "")
+set(LOCALIZED_FILES "")
 
 if(APPLE)
 	list(APPEND RESOURCE_FILES "chiaking.icns")
+	# demande d'accès au micro traduite, une par langue de CFBundleLocalizations
+	foreach(lang fr de es it pt)
+		set(strings "macos/${lang}.lproj/InfoPlist.strings")
+		set_source_files_properties(${strings} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources/${lang}.lproj")
+		list(APPEND LOCALIZED_FILES ${strings})
+	endforeach()
 endif()
 
 if(CHIAKI_ENABLE_STEAMDECK_NATIVE AND LINUX)
@@ -102,6 +109,7 @@ endif()
 
 add_executable(chiaki WIN32
 		${RESOURCE_FILES}
+		${LOCALIZED_FILES}
 		${SOURCE_FILES}
 )
 target_include_directories(chiaki PRIVATE include)
