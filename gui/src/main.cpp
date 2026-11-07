@@ -202,10 +202,6 @@ int real_main(int argc, char *argv[])
 	// désactivé par défaut) : la manette et les flèches restaient bloquées sur le premier réglage
 	app.styleHints()->setTabFocusBehavior(Qt::TabFocusAllControls);
 
-	const QString language = AppTranslator::WantedLanguage();
-	if(!language.isEmpty())
-		app.installTranslator(new AppTranslator(language, &app));
-
 #ifdef Q_OS_MACOS
 	// sur Mac, le Dock prend l'icône de l'appli elle-même (Assets.car ou .icns) :
 	// la remplacer ici l'empêcherait d'afficher l'icône « Liquid Glass » de macOS 26
@@ -260,6 +256,8 @@ int real_main(int argc, char *argv[])
 	QStringList args = parser.positionalArguments();
 
 	Settings settings(parser.isSet(profile_option) ? parser.value(profile_option) : QString());
+	// avant tout texte traduit : la langue choisie est commune à tous les profils
+	AppTranslator::Apply(settings.GetLanguage());
 	bool exit_app_on_stream_exit = parser.isSet(stream_exit_option);
 	if(parser.isSet(profile_option))
 		settings.SetCurrentProfile(parser.value(profile_option));

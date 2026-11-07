@@ -1211,6 +1211,16 @@ void Settings::SetDisconnectAction(DisconnectAction action)
 	settings.setValue("settings/disconnect_action", disconnect_action_values[action]);
 }
 
+QString Settings::GetLanguage() const
+{
+	return default_settings.value("settings/language").toString();
+}
+
+void Settings::SetLanguage(const QString &language)
+{
+	default_settings.setValue("settings/language", language);
+}
+
 static const QMap<SuspendAction, QString> suspend_action_values = {
 	{ SuspendAction::Sleep, "sleep" },
 	{ SuspendAction::Nothing, "nothing" },

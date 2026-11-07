@@ -1,4 +1,5 @@
 #include "qmlsettings.h"
+#include "apptranslator.h"
 #include "macnplayrules.h"
 #include "sessionlog.h"
 
@@ -235,6 +236,20 @@ void QmlSettings::setSuspendAction(int action)
 {
     settings->SetSuspendAction(static_cast<SuspendAction>(action));
     emit suspendActionChanged();
+}
+
+QString QmlSettings::language() const
+{
+    return settings->GetLanguage();
+}
+
+void QmlSettings::setLanguage(const QString &language)
+{
+    if(language == settings->GetLanguage())
+        return;
+    settings->SetLanguage(language);
+    AppTranslator::Apply(language);
+    emit languageChanged();
 }
 
 bool QmlSettings::logVerbose() const

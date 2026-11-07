@@ -15,6 +15,7 @@ class QmlSettings : public QObject
     Q_PROPERTY(int resolutionRemotePS5 READ resolutionRemotePS5 WRITE setResolutionRemotePS5 NOTIFY resolutionRemotePS5Changed)
     Q_PROPERTY(int disconnectAction READ disconnectAction WRITE setDisconnectAction NOTIFY disconnectActionChanged)
     Q_PROPERTY(int suspendAction READ suspendAction WRITE setSuspendAction NOTIFY suspendActionChanged)
+    Q_PROPERTY(QString language READ language WRITE setLanguage NOTIFY languageChanged)
     Q_PROPERTY(bool logVerbose READ logVerbose WRITE setLogVerbose NOTIFY logVerboseChanged)
     Q_PROPERTY(bool logSanitize READ logSanitize WRITE setLogSanitize NOTIFY logSanitizeChanged)
     Q_PROPERTY(bool vSyncEnabled READ vSyncEnabled WRITE setVSyncEnabled NOTIFY vSyncEnabledChanged)
@@ -201,6 +202,9 @@ public:
 
     int suspendAction() const;
     void setSuspendAction(int action);
+
+    QString language() const;
+    void setLanguage(const QString &language);
 
     bool logVerbose() const;
     void setLogVerbose(bool verbose);
@@ -635,6 +639,7 @@ signals:
     void resolutionRemotePS5Changed();
     void disconnectActionChanged();
     void suspendActionChanged();
+    void languageChanged();
     void logVerboseChanged();
     void logSanitizeChanged();
     void vSyncEnabledChanged();

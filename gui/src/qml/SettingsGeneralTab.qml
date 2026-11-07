@@ -1,4 +1,4 @@
-// Onglet Général : fenêtre, fin de partie, menu en jeu.
+// Onglet Général : langue, fenêtre, fin de partie, menu en jeu.
 // Affiché dans SettingsDialog ; les fonctions communes (dialog.…) viennent de lui.
 import QtCore
 import QtQuick
@@ -14,7 +14,7 @@ import "controls" as C
 
 Item {
     // General
-    property alias disconnectActionItem: disconnectAction
+    property alias firstFocusItem: languageChoice
     property alias generalFlickItem: generalFlick
     Flickable {
         id: generalFlick
@@ -51,6 +51,37 @@ Item {
                     Layout.preferredWidth: 360
                     horizontalAlignment: Text.AlignRight
                     wrapMode: Text.WordWrap
+                    text: qsTr("Language:")
+                    font.weight: Font.Medium
+                    opacity: 0.92
+                }
+
+            C.ComboBox {
+                id: languageChoice
+                // codes connus de AppTranslator ; vide : suivre la langue du Mac
+                readonly property var codes: ["", "en", "fr", "de", "es", "it", "pt"]
+                Layout.preferredWidth: 400
+                firstInFocusChain: true
+                // chaque langue écrite dans sa propre langue, pour la retrouver même sans la lire
+                model: [qsTr("Same as the Mac"), "English", "Français", "Deutsch", "Español", "Italiano", "Português"]
+                currentIndex: Math.max(0, codes.indexOf(Chiaki.settings.language))
+                onActivated: index => Chiaki.settings.language = codes[index]
+            }
+
+            Label {
+                Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+                Layout.preferredWidth: 230
+                elide: Text.ElideRight
+                text: qsTr("(Same as the Mac)")
+                opacity: 0.45
+                font.pixelSize: 15
+            }
+
+                Label {
+                    Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+                    Layout.preferredWidth: 360
+                    horizontalAlignment: Text.AlignRight
+                    wrapMode: Text.WordWrap
                     text: qsTr("Action On Disconnect:")
                     font.weight: Font.Medium
                     opacity: 0.92
@@ -59,7 +90,6 @@ Item {
             C.ComboBox {
                 id: disconnectAction
                 Layout.preferredWidth: 400
-                firstInFocusChain: true
                 model: [qsTr("Do Nothing"), qsTr("Enter Sleep Mode"), qsTr("Ask")]
                 currentIndex: Chiaki.settings.disconnectAction
                 onActivated: index => Chiaki.settings.disconnectAction = index

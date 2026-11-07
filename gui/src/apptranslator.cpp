@@ -3,6 +3,7 @@
 
 #include <apptranslator.h>
 
+#include <QCoreApplication>
 #include <QLocale>
 
 namespace
@@ -67,11 +68,12 @@ QString AppTranslator::translate(const char *context, const char *source_text, c
 	return table.value(QString::fromUtf8(source_text));
 }
 
-QString AppTranslator::WantedLanguage()
+QString AppTranslator::WantedLanguage(const QString &choice)
 {
 	const QString forced = qEnvironmentVariable("CHIAKI_LANG").toLower();
-	if(!forced.isEmpty())
-		return find(forced) ? QString::fromLatin1(find(forced)->code) : QString();
+	const QString wanted = forced.isEmpty() ? choice.toLower() : forced;
+	if(!wanted.isEmpty())
+		return find(wanted) ? QString::fromLatin1(find(wanted)->code) : QString();
 	// la première langue préférée du Mac que l'appli connaît ; l'anglais arrête la recherche
 	for(const QString &ui_lang : QLocale::system().uiLanguages())
 	{
@@ -81,4 +83,21 @@ QString AppTranslator::WantedLanguage()
 			return QString::fromLatin1(lang->code);
 	}
 	return QString();
+}
+
+void AppTranslator::Apply(const QString &choice)
+{
+	// la traduction installée ; l'enlever prévient l'interface (événement LanguageChange)
+	static AppTranslator *installed = nullptr;
+	if(installed)
+	{
+		QCoreApplication::removeTranslator(installed);
+		delete installed;
+		installed = nullptr;
+	}
+	const QString language = WantedLanguage(choice);
+	if(language.isEmpty())
+		return;
+	installed = new AppTranslator(language, QCoreApplication::instance());
+	QCoreApplication::installTranslator(installed);
 }

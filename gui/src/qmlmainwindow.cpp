@@ -5800,6 +5800,12 @@ void QmlMainWindow::drainDeferredSwaps()
     finalizeDeferredPresentIfIdle();
 }
 
+void QmlMainWindow::retranslate()
+{
+    if (qml_engine)
+        qml_engine->retranslate();
+}
+
 void QmlMainWindow::updatePlacebo()
 {
     renderparams_changed = true;

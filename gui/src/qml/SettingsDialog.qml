@@ -39,7 +39,7 @@ DialogView {
     buttonVisible: false
     readonly property bool isSettingsPage: true
     // éléments des onglets dont la fenêtre a besoin (focus, défilement, raccourcis)
-    readonly property var disconnectAction: generalTab.disconnectActionItem
+    readonly property var generalFirstItem: generalTab.firstFocusItem
     readonly property var generalFlick: generalTab.generalFlickItem
     readonly property var hwDecoderCombo: videoTab.hwDecoderComboItem
     readonly property var videoFlick: videoTab.videoFlickItem
@@ -173,7 +173,7 @@ DialogView {
     function focusCurrentTabFirstItem() {
         let item = null;
         switch (bar.currentIndex) {
-        case 0: item = disconnectAction; break;
+        case 0: item = generalFirstItem; break;
         case 1: item = hwDecoderCombo; break;
         case 2: item = consoleSelection; break;
         case 3: item = audioOutDevice; break;

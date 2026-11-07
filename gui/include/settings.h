@@ -508,6 +508,10 @@ class Settings : public QObject
 		SuspendAction GetSuspendAction();
 		void SetSuspendAction(SuspendAction action);
 
+		// langue de l'interface (« en », « fr »…), vide pour suivre le Mac ; commune à tous les profils
+		QString GetLanguage() const;
+		void SetLanguage(const QString &language);
+
 		PlaceboUpscaler GetPlaceboUpscaler() const;
 		void SetPlaceboUpscaler(PlaceboUpscaler upscaler);
 

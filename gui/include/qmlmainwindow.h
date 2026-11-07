@@ -162,6 +162,8 @@ public slots:
     void queuePlaceboReset(bool preserve_timeline);
 
     void updatePlacebo();
+    // réécrit les textes qsTr() de l'interface après un changement de langue
+    void retranslate();
     void updateVSync();
     void updateVulkanDeferredSwap();
     void show();

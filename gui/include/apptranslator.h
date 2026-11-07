@@ -5,8 +5,9 @@
 // Rôle unique : traduire les textes anglais de qsTr()/tr() dans la langue du Mac.
 // Une table par langue dans include/translations/<code>.inc, lignes { "anglais", "traduction" }.
 // L'anglais est la langue d'origine des textes : il n'a pas de table.
-// La langue suit celle du Mac (ou celle choisie pour l'appli dans Réglages Système › Langue
-// et région › Applications) ; la variable d'environnement CHIAKI_LANG=<code> la force (tests).
+// La langue est celle choisie dans Paramètres › Général › Langue ; « Comme le Mac » (choix vide)
+// suit celle du Mac (ou celle choisie pour l'appli dans Réglages Système › Langue et région ›
+// Applications) ; la variable d'environnement CHIAKI_LANG=<code> passe avant tout (tests).
 #pragma once
 
 #include <QTranslator>
@@ -21,8 +22,12 @@ class AppTranslator : public QTranslator
 		QString translate(const char *context, const char *source_text, const char *disambiguation = nullptr, int n = -1) const override;
 		bool isEmpty() const override { return table.isEmpty(); }
 
-		// code de la langue à utiliser (« fr », « de »…), vide pour garder l'anglais
-		static QString WantedLanguage();
+		// code de la langue à utiliser (« fr », « de »…), vide pour garder l'anglais ;
+		// choice : choix des Paramètres (« en », « fr »…), vide pour suivre le Mac
+		static QString WantedLanguage(const QString &choice);
+
+		// remplace la traduction installée dans l'appli par celle du choix
+		static void Apply(const QString &choice);
 
 	private:
 		QHash<QString, QString> table;
