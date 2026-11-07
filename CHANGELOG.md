@@ -1,6 +1,6 @@
 # Historique des versions
 
-## En cours (prochaine version)
+## 1.2.2 — 7 novembre 2026
 
 - La connexion automatique n'allume plus jamais la console : elle lance la partie seulement si la console est déjà allumée chez vous. Une console en mode repos attend « Jouer ».
 - Quitter l'appli pendant la demande du code PIN de connexion la figeait : elle se ferme normalement.

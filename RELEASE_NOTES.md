@@ -4,9 +4,12 @@
 
 **Pour Mac avec puce Apple (M1 à M5), macOS 15 ou plus récent.**
 
-### Correctif de la 1.2.1
+### Correctifs de la 1.2.2
 
-- La demande d'accès au micro s'affiche dans la bonne langue même quand le Mac a l'anglais puis une autre langue dans ses préférences.
+- **La console ne s'allume plus toute seule** à l'ouverture de l'appli : la connexion automatique lance la partie seulement si la console est déjà allumée chez vous. Seul **Jouer** allume une console en mode repos.
+- **Quitter pendant la demande du code PIN** de connexion figeait l'appli : elle se ferme maintenant normalement.
+- La **fenêtre du code PIN** n'est plus coupée (titre et bouton OK visibles).
+- La demande d'accès au micro s'affiche dans la bonne langue même quand le Mac a l'anglais puis une autre langue dans ses préférences (1.2.1).
 
 ### Nouveautés de la 1.2
 
