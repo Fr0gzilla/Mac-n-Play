@@ -14,6 +14,10 @@
 #include <QCoreApplication>
 #include <QProcess>
 
+#ifdef Q_OS_MACOS
+#include <CoreFoundation/CoreFoundation.h>
+#endif
+
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavutil/hwcontext.h>
@@ -249,6 +253,21 @@ void QmlSettings::setLanguage(const QString &language)
         return;
     settings->SetLanguage(language);
     AppTranslator::Apply(language);
+#ifdef Q_OS_MACOS
+    // la même langue pour ce que macOS affiche lui-même (demande d'accès au micro), au prochain lancement ;
+    // vide : la clé est retirée et macOS revient à la langue du Mac
+    if(language.isEmpty())
+        CFPreferencesSetAppValue(CFSTR("AppleLanguages"), nullptr, kCFPreferencesCurrentApplication);
+    else
+    {
+        CFStringRef code = language.toCFString();
+        CFArrayRef languages = CFArrayCreate(nullptr, reinterpret_cast<const void **>(&code), 1, &kCFTypeArrayCallBacks);
+        CFPreferencesSetAppValue(CFSTR("AppleLanguages"), languages, kCFPreferencesCurrentApplication);
+        CFRelease(languages);
+        CFRelease(code);
+    }
+    CFPreferencesAppSynchronize(kCFPreferencesCurrentApplication);
+#endif
     emit languageChanged();
     // libellés calculés en C++ (« fps » / « i/s »…) : retranslate() ne les voit pas
     emit qualityLabelsChanged();

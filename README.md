@@ -166,8 +166,7 @@ Avec Homebrew : `brew upgrade --cask macnplay`.
 ## Vie privée
 
 - **Tout reste sur votre Mac** : consoles associées, réglages, connexion au compte PSN, carte du compte et journal. Rien n'est envoyé au développeur.
-- L'appli ne parle qu'à **votre console**, aux **serveurs de Sony** (compte PSN, jeu par Internet) et à **GitHub** (vérification des nouvelles versions, désactivable).
-- Pour jouer **hors de chez vous**, l'appli interroge aussi des **serveurs STUN publics** (Google, Moonlight). Ils servent seulement à connaître votre adresse Internet, qu'ils voient donc passer.
+- L'appli parle à **votre console**, aux **serveurs de Sony** (compte PSN, jeu par Internet), à **GitHub** (vérification des nouvelles versions, désactivable) et, pour jouer **hors de chez vous**, à des **serveurs STUN publics** (Google, Moonlight), qui servent seulement à connaître votre adresse Internet et la voient donc passer.
 - Le **journal copié** pour un ticket masque vos adresses, identifiants, pseudo et noms de consoles.
 - L'**export des réglages** (Configuration › Exporter) contient vos associations de consoles, mais pas votre compte PSN : gardez ce fichier pour vous.
 

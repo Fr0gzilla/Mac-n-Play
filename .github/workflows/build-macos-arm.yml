@@ -144,6 +144,10 @@ jobs:
           min=$(/usr/libexec/PlistBuddy -c "Print LSMinimumSystemVersion" "Mac'n'Play.app/Contents/Info.plist")
           echo "macOS minimum annoncé : $min"
           if [[ "${min%%.*}" != 15 ]]; then echo "LSMinimumSystemVersion doit valoir 15"; bad=1; fi
+          # la demande d'accès au micro traduite, une par langue
+          for l in fr de es it pt; do
+            [[ -f "Mac'n'Play.app/Contents/Resources/$l.lproj/InfoPlist.strings" ]] || { echo "manque $l.lproj"; bad=1; }
+          done
           exit $bad
 
       - name: Check OpenSSL version
