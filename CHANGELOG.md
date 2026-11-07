@@ -1,5 +1,11 @@
 # Historique des versions
 
+## En cours (prochaine version)
+
+- La connexion automatique n'allume plus jamais la console : elle lance la partie seulement si la console est déjà allumée chez vous. Une console en mode repos attend « Jouer ».
+- Quitter l'appli pendant la demande du code PIN de connexion la figeait : elle se ferme normalement.
+- La fenêtre du code PIN de connexion s'adapte à son titre traduit, qui était coupé en français.
+
 ## 1.2.1 — 7 novembre 2026
 
 - La demande d'accès au micro a aussi son texte anglais dans un dossier de langue, comme les autres langues (conseil d'Apple, évite un mélange chez qui a l'anglais puis une autre langue dans ses préférences).

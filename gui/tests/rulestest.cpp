@@ -112,11 +112,14 @@ private slots:
         QCOMPARE(consoleDisplayName("PS5-Salon", "PS4-955"), std::string("PS5-Salon"));
     }
 
-    void nomPsnDeLaConsoleRetenue()
+    void connexionAutoNAllumePasLaConsole()
     {
-        QCOMPARE(psnNameOfConsole("PS4-955", "PS4-955"), std::string("Main PS4 Console"));
-        QCOMPARE(psnNameOfConsole("PS5-Salon", "PS4-955"), std::string("PS5-Salon"));
-        QCOMPARE(psnNameOfConsole("", ""), std::string(""));  // aucune console retenue
+        QCOMPARE(autoConnectStep(true, true, false), AutoConnectStep::Connect);
+        // en mode repos : on laisse la console dormir, même avant la fin de l'attente
+        QCOMPARE(autoConnectStep(true, false, false), AutoConnectStep::GiveUp);
+        QCOMPARE(autoConnectStep(false, false, false), AutoConnectStep::Wait);
+        // pas vue sur le réseau local : pas de connexion par Internet, qui la réveillerait
+        QCOMPARE(autoConnectStep(false, false, true), AutoConnectStep::GiveUp);
     }
 
     void consoleDeLessentiel()

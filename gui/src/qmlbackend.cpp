@@ -3,6 +3,7 @@
 #include "consoleregistry.h"
 #include "connectedcontrollers.h"
 #include "macnplaylog.h"
+#include "macnplayrules.h"
 #include "appjournal.h"
 #include <QSettings>
 #include "qmlsettings.h"
@@ -1381,22 +1382,24 @@ void QmlBackend::discardSession()
 void QmlBackend::setupAutoConnect()
 {
     auto_connect_mac = settings->GetAutoConnectHost().GetServerMAC();
-    auto_connect_nickname = settings->GetAutoConnectHost().GetServerNickname();
     psn_auto_connect_timer->stop();
     psn_auto_connect_timer->disconnect();
-    if(!autoConnect() || auto_connect_nickname.isEmpty())
+    if(!autoConnect())
         return;
     connect(psn_auto_connect_timer, &QTimer::timeout, this, [this]
     {
-        const QString key = consoles->psnConsoleKey(auto_connect_nickname);
-        if(!key.isEmpty())
-        {
-            connectToHost(key);
-            return;
-        }
-        qCWarning(logSession) << "Connexion auto : la console" << auto_connect_nickname << "n'est pas dans le compte PSN";
+        if(MacnPlayRules::autoConnectStep(false, false, true) == MacnPlayRules::AutoConnectStep::GiveUp)
+            giveUpAutoConnect("console pas vue sur le réseau local");
     });
     psn_auto_connect_timer->start(PSN_INTERNET_WAIT_SECONDS * 1000);
+}
+
+void QmlBackend::giveUpAutoConnect(const char *reason)
+{
+    qCInfo(logSession) << "Connexion auto abandonnée :" << reason << "(seul « Jouer » allume la console)";
+    psn_auto_connect_timer->stop();
+    stopAutoConnect();
+    emit autoConnectGaveUp();
 }
 
 void QmlBackend::setSessionNotice(const QString &notice)
@@ -1470,10 +1473,17 @@ void QmlBackend::updateDiscoveryHosts()
     if (autoConnect()) {
         const int hosts_count = consoles->discoveredHosts().count();
         for (int i = 0; i < hosts_count; ++i) {
-            if (consoles->discoveredHosts().at(i).GetHostMAC() != auto_connect_mac)
+            const DiscoveryHost host = consoles->discoveredHosts().at(i);
+            if (host.GetHostMAC() != auto_connect_mac)
                 continue;
-            psn_auto_connect_timer->stop();
-            connectToHost(ConsoleRegistry::DiscoveredKey(auto_connect_mac), consoles->discoveredHosts().at(i).host_name);
+            const auto step = MacnPlayRules::autoConnectStep(true, host.state == CHIAKI_DISCOVERY_HOST_STATE_READY, false);
+            if (step == MacnPlayRules::AutoConnectStep::Connect)
+            {
+                psn_auto_connect_timer->stop();
+                connectToHost(ConsoleRegistry::DiscoveredKey(auto_connect_mac), host.host_name);
+            }
+            else if (step == MacnPlayRules::AutoConnectStep::GiveUp)
+                giveUpAutoConnect("console en mode repos");
             break;
         }
     }

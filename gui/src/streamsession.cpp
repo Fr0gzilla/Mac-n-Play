@@ -725,7 +725,12 @@ StreamSession::~StreamSession()
 	log.PrepareShutdown();
 
 	if(session_started)
+	{
+		// quitter l'appli sans avoir arrêté la partie (ex. pendant la saisie du code PIN) : sans cet arrêt,
+		// le fil de la session attend le code sans fin et l'appli reste figée à la fermeture
+		chiaki_session_stop(&session);
 		chiaki_session_join(&session);
+	}
 	chiaki_session_fini(&session);
 	chiaki_opus_decoder_fini(&opus_decoder);
 	chiaki_opus_encoder_fini(&opus_encoder);

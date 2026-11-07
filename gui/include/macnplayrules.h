@@ -154,13 +154,17 @@ namespace MacnPlayRules
         return psn_name;
     }
 
-    // inverse de la règle précédente : la connexion automatique retient le vrai nom de la PS4,
-    // qu'il faut traduire en « Main PS4 Console » pour la retrouver dans le compte PSN
-    inline std::string psnNameOfConsole(const std::string &nickname, const std::string &registered_ps4_name)
+    // ---- connexion automatique au lancement ----
+
+    enum class AutoConnectStep { Wait, Connect, GiveUp };
+
+    // seul « Jouer » allume la console : la connexion automatique se branche sur une console déjà
+    // allumée et abandonne si elle est en mode repos, ou pas vue sur le réseau à la fin de l'attente
+    inline AutoConnectStep autoConnectStep(bool discovered, bool ready, bool wait_over)
     {
-        if(!nickname.empty() && nickname == registered_ps4_name)
-            return "Main PS4 Console";
-        return nickname;
+        if(discovered)
+            return ready ? AutoConnectStep::Connect : AutoConnectStep::GiveUp;
+        return wait_over ? AutoConnectStep::GiveUp : AutoConnectStep::Wait;
     }
 
     // ---- console réglée dans « L'essentiel » ----

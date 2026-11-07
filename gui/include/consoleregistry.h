@@ -87,8 +87,6 @@ public:
     // clé d'une console trouvée sur le réseau local
     static QString DiscoveredKey(const HostMAC &mac);
     static QString PsnKey(const QString &duid);
-    // clé de la console du compte PSN nommée « nickname » (vide si absente)
-    QString psnConsoleKey(const QString &nickname) const;
     const QList<DiscoveryHost> discoveredHosts() const { return discovery_manager.GetHosts(); }
 
     // envoie le signal de réveil ; en cas d'échec, prévient l'utilisateur et renvoie false

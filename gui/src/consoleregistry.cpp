@@ -344,19 +344,6 @@ QString ConsoleRegistry::registeredPs4Name() const
     return QString();
 }
 
-QString ConsoleRegistry::psnConsoleKey(const QString &nickname) const
-{
-    // Sony appelle la PS4 du compte « Main PS4 Console » : le nom réel de la PS4 associée
-    // (celui que retient la connexion automatique) désigne donc cette entrée-là
-    const QString psn_name = QString::fromStdString(MacnPlayRules::psnNameOfConsole(nickname.toStdString(), registeredPs4Name().toStdString()));
-    for(auto it = psn_hosts.cbegin(); it != psn_hosts.cend(); ++it)
-    {
-        if(it.value().GetName() == psn_name || it.value().GetName() == nickname)
-            return PsnKey(it.key());
-    }
-    return QString();
-}
-
 bool ConsoleRegistry::sendWakeup(const QString &address, const QByteArray &regist_key, bool ps5)
 {
     try

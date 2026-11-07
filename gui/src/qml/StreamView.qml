@@ -796,8 +796,9 @@ Item {
 
     Window {
         id: separateSessionPinWindow
-        readonly property int dialogWidth: 360
-        readonly property int dialogHeight: 220
+        // la taille suit le contenu : un titre traduit plus long que l'anglais passe à la ligne au lieu d'être coupé
+        readonly property int dialogWidth: 440
+        readonly property int dialogHeight: Math.ceil(separatePinLayout.implicitHeight) + 48
         visible: false
         flags: Qt.Dialog | Qt.FramelessWindowHint
         color: "transparent"
@@ -829,13 +830,16 @@ Item {
         }
 
         ColumnLayout {
+            id: separatePinLayout
             anchors {
                 fill: parent
                 margins: 24
             }
 
             Label {
-                Layout.alignment: Qt.AlignCenter
+                Layout.fillWidth: true
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.WordWrap
                 text: qsTr("Console Login PIN")
                 font.bold: true
                 font.pixelSize: 24

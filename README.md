@@ -108,7 +108,7 @@ Chaque console a sa carte : son nom, son état (allumée, en veille, injoignable
 
 - **L'essentiel** : les réglages utiles à tous (qualité d'image, fluidité, rendu, fenêtre de jeu, ce que fait la console quand vous quittez). Ils s'appliquent à la console affichée en haut ; avec deux consoles, △ passe de l'une à l'autre.
 - **Tous les réglages** : le détail, en onglets (Général, Vidéo, Streaming, Audio/Wi-Fi, Consoles, Touches, Manettes, À distance, Configuration). L1 et R1 changent d'onglet à la manette.
-- **Connexion automatique** (onglet Consoles) : si elle est cochée, l'appli lance la partie sur cette console dès son ouverture, sans attendre que vous appuyiez sur Jouer.
+- **Connexion automatique** (onglet Consoles) : si elle est cochée et que cette console est déjà allumée chez vous, l'appli lance la partie dès son ouverture. Elle ne l'allume jamais toute seule : une console en mode repos attend que vous appuyiez sur Jouer.
 
 ### Le menu en jeu
 

@@ -596,6 +596,11 @@ Item {
             }
         }
 
+        function onAutoConnectGaveUp() {
+            if (!Chiaki.session)
+                root.showMainView();
+        }
+
         function onWakeupStartInitiated() {
             stack.replace(stack.get(0), autoConnectViewComponent, {}, StackView.Immediate);
         }

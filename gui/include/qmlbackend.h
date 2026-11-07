@@ -172,6 +172,8 @@ signals:
     void autoConnectChanged();
     void wakeupStartInitiated();
     void wakeupStartFailed();
+    // connexion automatique abandonnée sans partie (console en mode repos ou absente) : retour à l'accueil
+    void autoConnectGaveUp();
     void windowTypeUpdated(WindowType type);
 
     void error(const QString &title, const QString &text);
@@ -228,6 +230,7 @@ private:
     void setSessionNotice(const QString &notice);
     void retryPsnAfterOutage();
     void setupAutoConnect();
+    void giveUpAutoConnect(const char *reason);
     void detachSessionLog();
     void discardSession();
     // relance la partie dans un autre préréglage ; remember = l'enregistrer comme choix de l'utilisateur
@@ -243,7 +246,6 @@ private:
     // profil quitté au dernier changement : gardé le temps qu'une requête PSN en cours se termine
     Settings *retired_settings = nullptr;
     HostMAC auto_connect_mac = {};
-    QString auto_connect_nickname = "";
     QString wakeup_nickname = "";
     bool wakeup_start = false;
 };
