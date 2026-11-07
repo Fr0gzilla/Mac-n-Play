@@ -1,0 +1,2 @@
+/* demande d'accès au micro ; même texte que MacOSXBundleInfo.plist.in, pour qu'un dossier existe par langue déclarée */
+"NSMicrophoneUsageDescription" = "Mac'n'Play uses the microphone only when you turn it on in a game, to talk with other players.";

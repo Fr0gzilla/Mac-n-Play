@@ -84,7 +84,7 @@ set(LOCALIZED_FILES "")
 if(APPLE)
 	list(APPEND RESOURCE_FILES "chiaking.icns")
 	# demande d'accès au micro traduite, une par langue de CFBundleLocalizations
-	foreach(lang fr de es it pt)
+	foreach(lang en fr de es it pt)
 		set(strings "macos/${lang}.lproj/InfoPlist.strings")
 		set_source_files_properties(${strings} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources/${lang}.lproj")
 		list(APPEND LOCALIZED_FILES ${strings})

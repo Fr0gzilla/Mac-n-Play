@@ -10,7 +10,7 @@
 - La **demande d'accès au micro** est elle aussi traduite.
 - Les traductions autres que le français n'ont pas encore été relues par des personnes dont c'est la langue maternelle : une phrase sonne mal ? [Ouvrez un ticket](https://github.com/Fr0gzilla/Mac-n-Play/issues).
 
-### Depuis la 1.1.1
+### Correctifs de la 1.1.1
 
 - **macOS 13 et 14** : macOS indique clairement qu'il faut macOS 15, au lieu d'une appli qui se ferme sans explication.
 - **« Tester ma connexion »** affiche « Internet répond en X ms ».
