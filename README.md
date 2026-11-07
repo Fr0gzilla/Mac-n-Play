@@ -39,7 +39,7 @@ Mac'n'Play affiche l'écran de votre PlayStation sur votre Mac (Remote Play) et 
 - **« Tester ma connexion »** : l'appli vérifie le réseau du Mac, Internet, le compte PSN et la console, et explique en clair ce qui ne va pas.
 - **Nouvelles versions signalées** sur l'accueil, avec un bouton pour les télécharger.
 - **Journal** à copier en un clic pour signaler un problème, avec vos adresses et votre pseudo masqués.
-- **En 6 langues** : français, anglais, allemand, espagnol, italien et portugais du Brésil. L'appli suit la langue de votre Mac ; une autre se choisit dans Paramètres › Général › Langue, sans relancer.
+- **En 6 langues** : français, anglais, allemand, espagnol, italien et portugais du Brésil. L'appli suit la langue de votre Mac ; une autre se choisit dans Paramètres › Tous les réglages › Général › Langue, sans relancer.
 
 ## Ce qu'il faut
 
@@ -222,7 +222,7 @@ L'allemand, l'espagnol, l'italien et le portugais (du Brésil) n'ont pas encore 
 
 ## English
 
-**Mac'n'Play** lets you play your PS4 or PS5 on your Mac with your controller (Remote Play). It is a macOS-focused version of the open source [chiaki-ng](https://github.com/streetpea/chiaki-ng) project. The interface is available in English, French, German, Spanish, Italian and Brazilian Portuguese, following your Mac's language or the one chosen in Settings › General › Language.
+**Mac'n'Play** lets you play your PS4 or PS5 on your Mac with your controller (Remote Play). It is a macOS-focused version of the open source [chiaki-ng](https://github.com/streetpea/chiaki-ng) project. The interface is available in English, French, German, Spanish, Italian and Brazilian Portuguese, following your Mac's language or the one chosen in Settings › All settings › General › Language.
 
 ### Requirements
 

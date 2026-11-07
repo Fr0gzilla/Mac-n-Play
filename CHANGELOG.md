@@ -1,8 +1,8 @@
 # Historique des versions
 
-## En cours (prochaine version)
+## 1.2.0 — 7 novembre 2026
 
-- L'appli parle allemand, espagnol, italien et portugais du Brésil, en plus du français et de l'anglais : elle suit la langue du Mac, ou celle choisie dans Paramètres › Général › Langue, appliquée sans relancer.
+- L'appli parle allemand, espagnol, italien et portugais du Brésil, en plus du français et de l'anglais : elle suit la langue du Mac, ou celle choisie dans Paramètres › Tous les réglages › Général › Langue, appliquée sans relancer. macOS retient ce choix pour ses propres messages.
 - La demande d'accès au micro est traduite dans chaque langue.
 - README : les serveurs STUN publics (jeu hors de chez soi) sont mentionnés dans « Vie privée ».
 - Vérification des traductions étendue à chaque langue (textes manquants, `%1` perdus).

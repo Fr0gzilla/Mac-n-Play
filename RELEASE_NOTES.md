@@ -4,11 +4,16 @@
 
 **Pour Mac avec puce Apple (M1 à M5), macOS 15 ou plus récent.**
 
-### Correctifs de la 1.1.1
+### Nouveautés de la 1.2
 
-- **macOS 13 et 14** : l'appli s'ouvrait puis se fermait sans explication. macOS indique maintenant clairement qu'il faut macOS 15.
-- **« Tester ma connexion »** affiche « Internet répond en X ms », sans promettre la fluidité de la partie.
-- **Homebrew** : `brew uninstall --zap macnplay` efface aussi le cache et l'état des fenêtres.
+- **6 langues** : français, anglais, allemand, espagnol, italien et portugais du Brésil. L'appli suit la langue de votre Mac ; une autre se choisit dans Paramètres › Tous les réglages › Général › Langue, et s'applique tout de suite, sans relancer.
+- La **demande d'accès au micro** est elle aussi traduite.
+- Les traductions autres que le français n'ont pas encore été relues par des personnes dont c'est la langue maternelle : une phrase sonne mal ? [Ouvrez un ticket](https://github.com/Fr0gzilla/Mac-n-Play/issues).
+
+### Depuis la 1.1.1
+
+- **macOS 13 et 14** : macOS indique clairement qu'il faut macOS 15, au lieu d'une appli qui se ferme sans explication.
+- **« Tester ma connexion »** affiche « Internet répond en X ms ».
 
 ### Nouveautés de la 1.1
 
@@ -22,7 +27,7 @@
 - **Nouvelle icône** au format de macOS 26.
 - Le vrai nom de votre PS4 sur sa carte, au lieu de « Main PS4 Console ».
 - **Image propre dès le début d'une partie** : plus de triangles ni de couleurs délavées quand la connexion perd la première image.
-- **Menu en jeu (Ctrl+O)** fluide, et immédiat après sa première ouverture.
+- **Menu en jeu (⌘ O)** fluide, et immédiat après sa première ouverture.
 - **Plus sûr** : le journal copié masque vos adresses et votre pseudo, l'export des réglages ne contient plus vos identifiants PSN.
 
 ### Installation
