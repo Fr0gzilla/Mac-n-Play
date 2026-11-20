@@ -74,6 +74,7 @@ class QmlBackend : public QObject
     Q_PROPERTY(ConnectionDiagnostic* diagnostic READ connectionDiagnostic CONSTANT)
     // message sur la partie en cours (« Partie par Internet… », « Connexion faible… »), vide sinon
     Q_PROPERTY(QString sessionNotice READ sessionNotice NOTIFY sessionNoticeChanged)
+    Q_PROPERTY(bool savedPinRefused READ savedPinRefused NOTIFY savedPinRefusedChanged)
     Q_PROPERTY(bool autoConnect READ autoConnect NOTIFY autoConnectChanged)
     Q_PROPERTY(PsnConnectState connectState READ connectState WRITE setConnectState NOTIFY connectStateChanged)
     Q_PROPERTY(ControllerMappingController* controllerMapping READ controllerMappingController CONSTANT)
@@ -106,6 +107,7 @@ public:
     UpdateChecker *updateChecker() const { return updates; }
     ConnectionDiagnostic *connectionDiagnostic() const { return diagnostic; }
     QString sessionNotice() const { return session_notice; }
+    bool savedPinRefused() const { return saved_pin_refused; }
     StreamSession *qmlSession() const;
     QList<QmlController*> qmlControllers() const;
 
@@ -165,6 +167,7 @@ public:
 signals:
     void sessionChanged(StreamSession *session);
     void sessionNoticeChanged();
+    void savedPinRefusedChanged();
     void psnConnect(StreamSession *session, const QString &duid, const bool &ps5);
     void showPsnView();
     void connectStateChanged();
@@ -227,6 +230,10 @@ private:
     RemoteQualityGuard *remote_quality = {};
     ConnectionDiagnostic *diagnostic = {};
     QString session_notice;
+    QString session_console_key;
+    QString pending_login_pin;
+    bool saved_pin_refused = false;
+    bool saved_pin_sent = false;
     void setSessionNotice(const QString &notice);
     void retryPsnAfterOutage();
     void setupAutoConnect();

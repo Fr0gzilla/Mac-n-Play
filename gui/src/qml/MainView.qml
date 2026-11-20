@@ -74,6 +74,33 @@ Pane {
     // en mode souris que si le curseur a vraiment bougé
     property point lastMouse: Qt.point(-1, -1)
     property bool mouseSelecting: false
+    property string selectedConsoleKey: ""
+    property string lastPlayedKey: ""
+    property bool updatingHosts: false
+    function updateHosts() {
+        updatingHosts = true;
+        const items = Chiaki.consoles.list;
+        hostsView.model = items;
+        hostsView.currentIndex = Chiaki.consoles.selectedConsoleIndex(items, selectedConsoleKey);
+        if (hostsView.currentIndex >= 0)
+            selectedConsoleKey = items[hostsView.currentIndex].key;
+        updatingHosts = false;
+    }
+    Component.onCompleted: updateHosts()
+    Connections {
+        target: Chiaki
+        function onSessionChanged() {
+            if (!Chiaki.session && consolePane.lastPlayedKey) {
+                consolePane.selectedConsoleKey = consolePane.lastPlayedKey;
+                consolePane.updateHosts();
+                consolePane.lastPlayedKey = "";
+            }
+        }
+    }
+    Connections {
+        target: Chiaki.consoles
+        function onListChanged() { consolePane.updateHosts(); }
+    }
     function selectByMouse(i) {
         if (hostsView.currentIndex === i)
             return;
@@ -131,7 +158,12 @@ Pane {
     ListView {
         id: hostsView
         // la manette (ou les flèches) change la carte choisie : on montre ses repères de boutons
-        onCurrentIndexChanged: if (!consolePane.mouseSelecting) consolePane.padMode = true
+        onCurrentIndexChanged: {
+            if (!consolePane.updatingHosts && currentIndex >= 0 && currentIndex < model.length) {
+                consolePane.selectedConsoleKey = model[currentIndex].key;
+                if (!consolePane.mouseSelecting) consolePane.padMode = true;
+            }
+        }
         Keys.onPressed: (event) => { consolePane.padMode = true; event.accepted = false; }
         keyNavigationWraps: true
         anchors {
@@ -144,24 +176,7 @@ Pane {
         }
         clip: true
         spacing: 4
-        model: Chiaki.consoles.list
-        onCountChanged: {
-            if(!hostsView.currentItem)
-                hostsView.incrementCurrentIndex();
-            if(!hostsView.currentItem)
-                return;
-            if(!hostsView.currentItem.visible)
-            {
-                for(var i = 0; i < hostsView.count; i++)
-                {
-                    hostsView.incrementCurrentIndex()
-                    if(hostsView.currentItem.visible)
-                    {
-                        break;
-                    }
-                }
-            }
-        }
+        model: []
         delegate: ItemDelegate {
             visible: modelData.display
             id: delegate
@@ -227,6 +242,8 @@ Pane {
             onClicked: connectToHost()
 
             function connectToHost() {
+                consolePane.selectedConsoleKey = modelData.key;
+                consolePane.lastPlayedKey = modelData.key;
                 if (modelData.demo)
                     return root.showInfoDialog(qsTr("Demo console"), qsTr("This PS5 is only a demonstration, to preview the home screen with two consoles."));
                 if(modelData.discovered)

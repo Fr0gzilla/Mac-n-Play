@@ -43,6 +43,8 @@ public:
 
 signals:
     void listChanged();
+    void controllerConnected();
+    void controllerDisconnected();
 
 private:
     // combinaison du menu en jeu sous forme de masque de boutons (0 = désactivé)

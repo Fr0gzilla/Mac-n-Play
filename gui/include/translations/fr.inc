@@ -874,3 +874,6 @@
 		{ "ready", "allumée" },
 		{ "standby", "en veille" },
 		{ "unknown", "inconnu" },
+		{ "The saved PIN was refused by the console. Enter the right one: it will replace the saved one.", "Le code enregistré a été refusé par la console. Saisissez le bon code : il remplacera le code enregistré." },
+		{ "Controller connected", "Manette connectée" },
+		{ "Controller disconnected", "Manette déconnectée" },

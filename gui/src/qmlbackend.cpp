@@ -344,6 +344,12 @@ QmlBackend::QmlBackend(Settings *settings, QmlMainWindow *window)
             Qt::QueuedConnection);
     connected_controllers = new ConnectedControllers(settings, window, this);
     connect(connected_controllers, &ConnectedControllers::listChanged, this, &QmlBackend::controllersChanged);
+    connect(connected_controllers, &ConnectedControllers::controllerConnected, this, [this] {
+        if (session && session->IsConnected()) setSessionNotice(tr("Controller connected"));
+    });
+    connect(connected_controllers, &ConnectedControllers::controllerDisconnected, this, [this] {
+        if (session && session->IsConnected()) setSessionNotice(tr("Controller disconnected"));
+    });
     for (auto changed : {&QmlSettings::streamMenuEnabledChanged, &QmlSettings::streamMenuShortcut1Changed, &QmlSettings::streamMenuShortcut2Changed,
                          &QmlSettings::streamMenuShortcut3Changed, &QmlSettings::streamMenuShortcut4Changed})
         connect(settings_qml, changed, connected_controllers, &ConnectedControllers::applyStreamMenuShortcut);
@@ -719,6 +725,10 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
         return;
     }
 
+    pending_login_pin.clear();
+    saved_pin_sent = false;
+    saved_pin_refused = false;
+    emit savedPinRefusedChanged();
     session_info = connect_info;
     window->setStreamMaxFPS(connect_info.video_profile.max_fps);
     disable_zero_copy = !settings->GetUseZeroCopy();
@@ -956,6 +966,7 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
             logged_hw_transfer_failures.clear();
         }
 
+        pending_login_pin.clear();
         session_for_connections->deleteLater();
         session = nullptr;
         remote_quality->stop();
@@ -986,10 +997,17 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
     });
 
     connect(session, &StreamSession::LoginPINRequested, this, [this, connect_info](bool incorrect) {
-        if (!connect_info.initial_login_pin.isEmpty() && incorrect == false)
+        pending_login_pin.clear();
+        if (!connect_info.initial_login_pin.isEmpty() && !incorrect && !saved_pin_sent) {
+            saved_pin_sent = true;
             session->SetLoginPIN(connect_info.initial_login_pin);
-        else
+        } else {
+            if (incorrect && saved_pin_sent && !saved_pin_refused) {
+                saved_pin_refused = true;
+                emit savedPinRefusedChanged();
+            }
             emit sessionPinDialogRequested();
+        }
     });
 
     connect(session, &StreamSession::DataHolepunchProgress, this, [this](bool finished) {
@@ -1011,6 +1029,10 @@ void QmlBackend::createSession(const StreamSessionConnectInfo &connect_info)
 
         if (session_for_connections->IsConnected())
         {
+            if (!pending_login_pin.isEmpty() && saved_pin_refused) {
+                consoles->setConsolePin(session_console_key, pending_login_pin);
+                pending_login_pin.clear();
+            }
             consoles->setDiscoveryEnabled(false);
             // la liste des tailles d'image arrive juste après la connexion
             if (!pro_check_mac.isEmpty())
@@ -1131,6 +1153,8 @@ void QmlBackend::connectToHost(const QString &key, QString nickname)
         emit registDialogRequested(server.address(), server.isPS5(), server.duid);
         return;
     }
+
+    session_console_key = ConsoleRegistry::DiscoveredKey(server.registered_host.GetServerMAC());
 
     // les réglages propres à cette console (qualité, fluidité…) s'appliquent à la partie
     // (une adresse MAC toute à zéro = console inconnue : rien à appliquer)
@@ -1421,8 +1445,11 @@ void QmlBackend::sessionGoHome()
 void QmlBackend::enterPin(const QString &pin)
 {
     qCInfo(logSession) << "Code de connexion saisi";
-    if (session)
+    if (session) {
+        if (saved_pin_refused)
+            pending_login_pin = pin;
         session->SetLoginPIN(pin);
+    }
 }
 
 void QmlBackend::stopAutoConnect()

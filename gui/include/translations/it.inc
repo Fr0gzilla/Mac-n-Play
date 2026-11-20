@@ -874,3 +874,6 @@
 		{ "ready", "accesa" },
 		{ "standby", "in riposo" },
 		{ "unknown", "sconosciuto" },
+		{ "The saved PIN was refused by the console. Enter the right one: it will replace the saved one.", "La console ha rifiutato il PIN salvato. Inserisca quello corretto: sostituirà quello salvato." },
+		{ "Controller connected", "Controller connesso" },
+		{ "Controller disconnected", "Controller disconnesso" },

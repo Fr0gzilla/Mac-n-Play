@@ -782,14 +782,22 @@ Item {
         onRejected: Chiaki.stopSession(false)
         Material.roundedScale: Material.MediumScale
 
-        TextField {
-            id: pinField
-            echoMode: Chiaki.settings.streamerMode ? TextInput.Password : TextInput.Normal
-            implicitWidth: 200
-            validator: RegularExpressionValidator { regularExpression: /[0-9]{4}/ }
-            Keys.onReturnPressed: {
-                if(sessionPinDialog.standardButton(Dialog.Ok).enabled)
-                    sessionPinDialog.standardButton(Dialog.Ok).clicked()
+        ColumnLayout {
+            Label {
+                visible: Chiaki.savedPinRefused
+                text: qsTr("The saved PIN was refused by the console. Enter the right one: it will replace the saved one.")
+                Layout.maximumWidth: 360
+                wrapMode: Text.WordWrap
+            }
+            TextField {
+                id: pinField
+                echoMode: Chiaki.settings.streamerMode ? TextInput.Password : TextInput.Normal
+                implicitWidth: 200
+                validator: RegularExpressionValidator { regularExpression: /[0-9]{4}/ }
+                Keys.onReturnPressed: {
+                    if(sessionPinDialog.standardButton(Dialog.Ok).enabled)
+                        sessionPinDialog.standardButton(Dialog.Ok).clicked()
+                }
             }
         }
     }
@@ -843,6 +851,13 @@ Item {
                 text: qsTr("Console Login PIN")
                 font.bold: true
                 font.pixelSize: 24
+            }
+
+            Label {
+                visible: Chiaki.savedPinRefused
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                text: qsTr("The saved PIN was refused by the console. Enter the right one: it will replace the saved one.")
             }
 
             TextField {

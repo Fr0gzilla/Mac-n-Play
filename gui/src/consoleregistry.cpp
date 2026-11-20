@@ -388,7 +388,17 @@ void ConsoleRegistry::wakeUp(const QString &key, QString nickname)
 void ConsoleRegistry::setConsolePin(const QString &key, QString console_pin)
 {
     ConsoleEntry entry = consoleByKey(key);
-    if(!entry.valid)
+    if(!entry.valid && key.startsWith(QStringLiteral("mac:")))
+    {
+        for(const RegisteredHost &host : settings->GetRegisteredHosts())
+            if(DiscoveredKey(host.GetServerMAC()) == key)
+            {
+                entry.registered_host = host;
+                entry.valid = true;
+                break;
+            }
+    }
+    if(!entry.valid || entry.registered_host.GetServerMAC().ToString() == QStringLiteral("000000000000"))
         return;
     entry.registered_host.SetConsolePin(entry.registered_host, std::move(console_pin));
     settings->AddRegisteredHost(entry.registered_host);
@@ -647,4 +657,15 @@ int ConsoleRegistry::settingsConsoleIndex(const QVariantList &consoles) const
         facts.push_back({m.value("registered").toBool(), m.value("discovered").toBool(), m.value("state").toString() == "ready"});
     }
     return MacnPlayRules::settingsConsoleIndex(facts);
+}
+
+int ConsoleRegistry::selectedConsoleIndex(const QVariantList &consoles, const QString &key) const
+{
+    std::vector<std::pair<std::string, bool>> facts;
+    for(const QVariant &console : consoles)
+    {
+        const QVariantMap m = console.toMap();
+        facts.emplace_back(m.value("key").toString().toStdString(), m.value("display").toBool());
+    }
+    return MacnPlayRules::selectedConsoleIndex(facts, key.toStdString());
 }

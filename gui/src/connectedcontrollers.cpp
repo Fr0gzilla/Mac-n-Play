@@ -61,6 +61,7 @@ void ConnectedControllers::refresh()
         it.value()->deleteLater();
         it = controllers.erase(it);
         changed = true;
+        emit controllerDisconnected();
     }
     const uint32_t shortcut = streamMenuShortcut();
     for(auto id : available)
@@ -82,6 +83,7 @@ void ConnectedControllers::refresh()
             mapping->controllerOpened(controller);
         }
         changed = true;
+        emit controllerConnected();
     }
     if(changed)
         emit listChanged();

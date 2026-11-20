@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <utility>
 
 namespace MacnPlayRules
 {
@@ -17,6 +18,22 @@ namespace MacnPlayRules
     inline bool consoleLimitReached(int registered_consoles)
     {
         return registered_consoles >= MAX_CONSOLES;
+    }
+
+    // retrouve une carte visible après la reconstruction de la liste
+    inline int selectedConsoleIndex(const std::vector<std::pair<std::string, bool>> &consoles, const std::string &key)
+    {
+        int first = -1;
+        for(size_t i = 0; i < consoles.size(); ++i)
+        {
+            if(!consoles[i].second)
+                continue;
+            if(first < 0)
+                first = static_cast<int>(i);
+            if(!key.empty() && consoles[i].first == key)
+                return static_cast<int>(i);
+        }
+        return first;
     }
 
     // une combinaison de boutons est réglée par 4 valeurs « numéro du bouton + 1 » (0 = aucun) ;

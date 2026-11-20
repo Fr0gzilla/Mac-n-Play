@@ -21,6 +21,15 @@ private slots:
         QVERIFY(consoleLimitReached(3));
     }
 
+    void selectionConsole()
+    {
+        const std::vector<std::pair<std::string, bool>> consoles = {{"ps5", true}, {"cachee", false}, {"ps4", true}};
+        QCOMPARE(selectedConsoleIndex(consoles, "ps4"), 2);
+        QCOMPARE(selectedConsoleIndex(consoles, "absente"), 0);
+        QCOMPARE(selectedConsoleIndex(consoles, "cachee"), 0);
+        QCOMPARE(selectedConsoleIndex({}, "ps4"), -1);
+    }
+
     void masqueDeBoutons()
     {
         // L1 + R1 + L3 + R3 (réglages 10, 11, 12, 13 → bits 9 à 12)
